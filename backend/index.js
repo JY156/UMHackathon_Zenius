@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const dbService = require('./services/dbService');
+const inputRoutes = require('./routes/inputRoutes');
+const userRoutes = require('./routes/userRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const approvalRoutes = require('./routes/approvalRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -9,6 +13,10 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/api/users', userRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/approvals', approvalRoutes);
+app.use('/api/inputs', inputRoutes);
 
 // Health Check Route
 app.get('/api/health', (req, res) => {
@@ -17,6 +25,12 @@ app.get('/api/health', (req, res) => {
     project: 'Zenius', 
     timestamp: new Date() 
   });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('⚠️ Server Error:', err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 // Start Server and Test Database
