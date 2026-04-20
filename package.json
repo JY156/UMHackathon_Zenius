@@ -1,0 +1,26 @@
+{
+  "name": "umhackathon_zenius",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+  "start:client": "cd client && npm run dev",
+  "start:server": "cd server && node index.js",
+  "dev": "concurrently \"npm run start:client\" \"npm run start:server\""
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JY156/UMHackathon_Zenius.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JY156/UMHackathon_Zenius/issues"
+  },
+  "homepage": "https://github.com/JY156/UMHackathon_Zenius#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
