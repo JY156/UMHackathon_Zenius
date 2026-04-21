@@ -42,7 +42,20 @@ function isActive(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Initialize from localStorage if available, otherwise default to false
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sidebar-collapsed") === "true";
+    }
+    return false;
+  });
+
+  const handleToggle = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem("sidebar-collapsed", String(newState));
+  };
+
   const teamActive = pathname.startsWith("/team");
 
   return (
@@ -57,7 +70,7 @@ export function Sidebar() {
             <p className="text-sm font-bold tracking-tight">Zenius AI</p>
           )}
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={handleToggle}
             className="rounded-md p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ml-auto"
             title={isCollapsed ? "Open sidebar" : "Highlight sidebar"}
           >
