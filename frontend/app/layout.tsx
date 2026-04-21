@@ -1,6 +1,6 @@
+import "@/app/globals.css";
 import type { Metadata } from "next";
 import { Poppins, Libre_Baskerville, IBM_Plex_Mono } from "next/font/google";
-import "./globals.css";
 
 const fontSans = Poppins({
   weight: ["400", "500", "600", "700"],
@@ -21,8 +21,8 @@ const fontMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Workforce Dashboard",
-  description: "AI-powered workforce management frontend",
+  title: "ZeniusAIApp",
+  description: "AI-powered workplace assistant for task management and team collaboration",
 };
 
 export default function RootLayout({

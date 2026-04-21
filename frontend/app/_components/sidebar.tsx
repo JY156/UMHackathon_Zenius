@@ -14,6 +14,7 @@ import {
   Users,
   PanelLeftClose,
   PanelLeftOpen,
+  Library,
 } from "lucide-react";
 
 type NavItem = {
@@ -24,6 +25,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/resources", label: "Resources", icon: Library },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/reassignments", label: "Reassignments", icon: GitBranchPlus },
   { href: "/analytics", label: "Analytics", icon: ChartColumn },
@@ -86,7 +88,7 @@ export function Sidebar() {
                   {!isCollapsed && <span>{item.label}</span>}
                 </Link>
 
-                {item.href === "/team" && teamActive && !isCollapsed ? (
+                {/* {item.href === "/team" && teamActive && !isCollapsed ? (
                   <div className="space-y-1 pl-5 pt-2">
                     {teamSubItems.map((subItem, idx) => (
                       <p
@@ -101,7 +103,7 @@ export function Sidebar() {
                       </p>
                     ))}
                   </div>
-                ) : null}
+                ) : null} */}
               </div>
             );
           })}
@@ -109,8 +111,10 @@ export function Sidebar() {
       </div>
 
       <button 
-        className={`flex items-center gap-2 rounded-[4px] bg-sidebar-primary px-3 py-2 text-left text-sm font-semibold text-sidebar-primary-foreground transition-all ${
-          isCollapsed ? "justify-center w-fit mx-auto" : "w-full"
+        className={`flex items-center gap-2 rounded-[4px] px-3 py-2 text-left text-sm transition-all ${
+          isCollapsed 
+            ? "justify-center w-fit mx-auto bg-sidebar text-secondary hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" 
+            : "w-full bg-sidebar text-secondary hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         }`}
       >
         <LogOut className="h-4 w-4" />
