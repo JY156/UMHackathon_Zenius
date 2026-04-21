@@ -121,6 +121,22 @@ const dbService = {
             console.error("getApprovals failed", error);
             return false;
         }
+    },
+    getLogs: async () => {
+        try {
+            const snapshot = await db.collection('logs')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+            const logs = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            return logs;
+        } catch (error){
+            console.error("getLog failed", error);
+            return false;
+        }
     }
 };
 

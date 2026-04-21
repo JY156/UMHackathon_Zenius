@@ -49,6 +49,14 @@ const runTests = async () => {
         console.log(`✅ GET /api/tasks Status: ${getTasksRes.status}`);
         console.log(`Found ${getTasksData.length} active tasks.\n`);
 
+
+        // Test 8: GET /api/log
+        console.log("Testing 8: GET /api/logs...");
+        const getLogRes = await fetch(`${BASE_URL}/logs`);
+        const getLogData = await getLogRes.json();
+        console.log(`✅ GET /api/log Status: ${getLogRes.status}`);
+        console.log(`Found ${getLogData.length} log.\n`);
+
         console.log("🎉 All basic fetch tests completed successfully.");
 
     } catch (error) {
