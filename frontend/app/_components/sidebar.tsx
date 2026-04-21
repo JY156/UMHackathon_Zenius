@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType } from "react";
+import { useState, type ComponentType } from "react";
 import {
   Bot,
   Bell,
@@ -12,6 +12,8 @@ import {
   LogOut,
   Settings,
   Users,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 type NavItem = {
@@ -39,13 +41,31 @@ function isActive(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const teamActive = pathname.startsWith("/team");
 
   return (
-    <aside className="flex h-screen w-[260px] flex-col justify-between bg-sidebar p-5 text-sidebar-foreground">
+    <aside 
+      className={`flex h-screen flex-col justify-between bg-sidebar p-5 text-sidebar-foreground transition-all duration-300 ease-in-out ${
+        isCollapsed ? "w-[80px]" : "w-[260px]"
+      }`}
+    >
       <div className="space-y-4">
-        <div className="rounded-[4px] bg-sidebar px-2 py-2">
-          <p className="text-sm font-bold tracking-tight">ZenWork AI</p>
+        <div className="flex items-center justify-between rounded-[4px] bg-sidebar px-2 py-2">
+          {!isCollapsed && (
+            <p className="text-sm font-bold tracking-tight">Zenius AI</p>
+          )}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="rounded-md p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ml-auto"
+            title={isCollapsed ? "Open sidebar" : "Highlight sidebar"}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
         </div>
 
         <nav className="space-y-2">
@@ -60,13 +80,13 @@ export function Sidebar() {
                     active
                       ? "bg-sidebar-primary text-sidebar-primary-foreground font-semibold"
                       : "bg-sidebar text-secondary hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  }`}
+                  } ${isCollapsed ? "justify-center" : ""}`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  {item.label}
+                  {!isCollapsed && <span>{item.label}</span>}
                 </Link>
 
-                {item.href === "/team" && teamActive ? (
+                {item.href === "/team" && teamActive && !isCollapsed ? (
                   <div className="space-y-1 pl-5 pt-2">
                     {teamSubItems.map((subItem, idx) => (
                       <p
@@ -88,9 +108,13 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <button className="flex w-full items-center gap-2 rounded-[4px] bg-sidebar-primary px-3 py-2 text-left text-sm font-semibold text-sidebar-primary-foreground">
+      <button 
+        className={`flex items-center gap-2 rounded-[4px] bg-sidebar-primary px-3 py-2 text-left text-sm font-semibold text-sidebar-primary-foreground transition-all ${
+          isCollapsed ? "justify-center w-fit mx-auto" : "w-full"
+        }`}
+      >
         <LogOut className="h-4 w-4" />
-        Log out
+        {!isCollapsed && <span>Log out</span>}
       </button>
     </aside>
   );
