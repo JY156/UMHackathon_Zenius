@@ -80,6 +80,21 @@ const dbService = {
         }
     },
 
+    getUserById: async (uid) => {
+        try {
+            const userDoc = await db.collection('users').doc(uid).get();
+            if (!userDoc.exists) return null;
+
+            const userData = userDoc.data();
+            const currentLoad = await dbService.calculateLoadForUser(uid, userData.sentiment_score);
+
+            return { uid: userDoc.id, ...userData, current_load: currentLoad };
+        } catch (error) {
+            console.error("getUserById failed", error);
+            return null;
+        }
+    },
+
     //Tasks
     getAllTasks: async () => {
         try {
@@ -91,6 +106,27 @@ const dbService = {
         } catch (error) {
             console.error("getAllTasks failed", error);
             return [];
+        }
+    },
+
+    addTask: async (taskData) => {
+        try {
+            const docRef = await db.collection('tasks').add({
+                ...taskData,
+                previousAssignee: [],
+                moveCount: 0,
+                status: taskData.status || 'todo'
+            });
+
+            const newLoad = await dbService.calculateLoadForUser(taskData.assignedTo);
+            await db.collection('users').doc(taskData.assignedTo).update({ current_load: newLoad });
+
+            await dbService.addLog("TASK_CREATED", "Info", { tid: docRef.id, assignedTo: taskData.assignedTo });
+            
+            return docRef.id;
+        } catch (error) {
+            console.error("addTask failed", error);
+            return false;
         }
     },
 

@@ -9,21 +9,45 @@ const runTests = async () => {
         console.log("--- INITIAL STATE ---");
         const usersRes = await fetch(`${BASE_URL}/users`);
         const users = await usersRes.json();
-        console.log("Users Snapshot:", JSON.stringify(users, null, 2));
-
+        
         const tasksRes = await fetch(`${BASE_URL}/tasks`);
         const tasks = await tasksRes.json();
-        console.log("Tasks Snapshot:", JSON.stringify(tasks, null, 2), "\n");
 
         if (tasks.length === 0 || users.length < 2) {
             throw new Error("Insufficient data. Please seed your database.");
         }
 
+        const testUser = users[0]; // Used for Add Task and Single User Fetch
+
+        // --- NEW TEST 1: Create New Task (Agent Extraction Simulation) ---
+        // Simulates GLM extracting a task from meeting minutes
+        console.log("--- TEST: CREATE NEW TASK ---");
+        const newTaskRes = await fetch(`${BASE_URL}/tasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: "Emergency Security Patch",
+                assignedTo: testUser.uid,
+                priority: 5,
+                category: "Professional", // Triggers 1.5x multiplier
+                status: "todo"
+            })
+        });
+        const newTaskData = await newTaskRes.json();
+        console.log("New Task Created JSON:", JSON.stringify(newTaskData, null, 2), "\n");
+
+        // --- NEW TEST 2: Fetch Specific User (Dashboard Detail View) ---
+        // Verifies the stateful engine returns real-time load for one user [cite: 1]
+        console.log("--- TEST: FETCH SINGLE USER ---");
+        const singleUserRes = await fetch(`${BASE_URL}/users/${testUser.uid}`);
+        const singleUserData = await singleUserRes.json();
+        console.log(`User Detail for ${testUser.name}:`, JSON.stringify(singleUserData, null, 2), "\n");
+
+        // --- Existing Reassignment Workflow ---
         const task = tasks[0];
         const fromUser = users.find(u => u.uid === task.assignedTo);
         const toUser = users.find(u => u.uid !== task.assignedTo);
 
-        // --- 2. Create AI Approval Request ---
         console.log("--- STEP 1: AI REASONING ---");
         const appReq = await fetch(`${BASE_URL}/approvals/request`, {
             method: 'POST',
@@ -40,9 +64,8 @@ const runTests = async () => {
 
         const approvalId = appData.approvalId;
 
-        // --- 3. Manager Approval Step ---
         console.log("--- STEP 2: MANAGER ORCHESTRATION ---");
-        const managerRes = await fetch(`${BASE_URL}/approvals/${approvalId}`, {
+        await fetch(`${BASE_URL}/approvals/${approvalId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -50,10 +73,7 @@ const runTests = async () => {
                 actorUid: 'manager_123' 
             })
         });
-        const managerData = await managerRes.json();
-        console.log("Manager Update Response:", JSON.stringify(managerData, null, 2), "\n");
 
-        // --- 4. New Owner Acceptance (Execution) ---
         console.log("--- STEP 3: ACTION LAYER EXECUTION ---");
         const ownerRes = await fetch(`${BASE_URL}/approvals/${approvalId}`, {
             method: 'PATCH',
@@ -66,20 +86,15 @@ const runTests = async () => {
         const ownerData = await ownerRes.json();
         console.log("Owner Acceptance JSON:", JSON.stringify(ownerData, null, 2), "\n");
 
-        // --- 5. Final Load Verification ---
+        // --- Final Verification ---
         console.log("--- FINAL VERIFICATION ---");
         const finalUsersRes = await fetch(`${BASE_URL}/users`);
         const finalUsers = await finalUsersRes.json();
         
-        console.log("Updated User Loads:");
+        console.log("Updated User Loads (Should reflect New Task + Reassignment):");
         finalUsers.forEach(u => {
             console.log(`- ${u.name}: ${u.current_load.toFixed(2)}`);
         });
-
-        // --- 6. Log Audit ---
-        const logsRes = await fetch(`${BASE_URL}/logs`);
-        const logs = await logsRes.json();
-        console.log("\nLatest Log Entry:", JSON.stringify(logs[0], null, 2));
 
         console.log("\n🎉 Workflow Test Finished.");
 
