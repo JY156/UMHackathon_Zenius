@@ -1,66 +1,90 @@
 // backend/test-api.js
-
 const BASE_URL = 'http://localhost:5000/api';
 
 const runTests = async () => {
-    console.log("🚀 Starting Zenius API Tests...\n");
+    console.log("🚀 Starting Zenius Agentic Workflow Tests...\n");
 
     try {
-        // Test 1: POST /api/inputs (SY's Sensor Push)
-        console.log("Testing 1: POST /api/inputs...");
-        const postInputRes = await fetch(`${BASE_URL}/inputs`, {
+        // --- 1. Initial State Check ---
+        console.log("--- INITIAL STATE ---");
+        const usersRes = await fetch(`${BASE_URL}/users`);
+        const users = await usersRes.json();
+        console.log("Users Snapshot:", JSON.stringify(users, null, 2));
+
+        const tasksRes = await fetch(`${BASE_URL}/tasks`);
+        const tasks = await tasksRes.json();
+        console.log("Tasks Snapshot:", JSON.stringify(tasks, null, 2), "\n");
+
+        if (tasks.length === 0 || users.length < 2) {
+            throw new Error("Insufficient data. Please seed your database.");
+        }
+
+        const task = tasks[0];
+        const fromUser = users.find(u => u.uid === task.assignedTo);
+        const toUser = users.find(u => u.uid !== task.assignedTo);
+
+        // --- 2. Create AI Approval Request ---
+        console.log("--- STEP 1: AI REASONING ---");
+        const appReq = await fetch(`${BASE_URL}/approvals/request`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                source: "Slack_Test",
-                content: "This is an automated test message for sudden leave.",
-                metadata: { test: true }
+                tid: task.tid,
+                fromUid: fromUser.uid,
+                toUid: toUser.uid,
+                reasoning: "High burnout risk detected by Zenius Brain."
             })
         });
-        const postInputData = await postInputRes.json();
-        console.log(`✅ POST /api/inputs Status: ${postInputRes.status}`);
-        console.log("Response:", postInputData, "\n");
+        const appData = await appReq.json();
+        console.log("Approval Created JSON:", JSON.stringify(appData, null, 2), "\n");
 
-        // Test 2: GET /api/inputs (XWei's AI Fetch)
-        console.log("Testing 2: GET /api/inputs...");
-        const getInputsRes = await fetch(`${BASE_URL}/inputs`);
-        const getInputsData = await getInputsRes.json();
-        console.log(`✅ GET /api/inputs Status: ${getInputsRes.status}`);
-        console.log(`Found ${getInputsData.length} unprocessed inputs.\n`);
+        const approvalId = appData.approvalId;
 
-        // Test 4: GET /api/users (Jing Yuen's Dashboard Load Map)
-        console.log("Testing 4: GET /api/users...");
-        const getUsersRes = await fetch(`${BASE_URL}/users`);
-        const getUsersData = await getUsersRes.json();
-        console.log(`✅ GET /api/users Status: ${getUsersRes.status}`);
-        console.log(`Found ${getUsersData.length} users.\n`);
+        // --- 3. Manager Approval Step ---
+        console.log("--- STEP 2: MANAGER ORCHESTRATION ---");
+        const managerRes = await fetch(`${BASE_URL}/approvals/${approvalId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                status: 'pending owner acceptance', 
+                actorUid: 'manager_123' 
+            })
+        });
+        const managerData = await managerRes.json();
+        console.log("Manager Update Response:", JSON.stringify(managerData, null, 2), "\n");
 
-        // Test 5: GET /api/approvals (Jing Yuen's Dashboard Inbox)
-        console.log("Testing 5: GET /api/approvals...");
-        const getApprovalsRes = await fetch(`${BASE_URL}/approvals`);
-        const getApprovalsData = await getApprovalsRes.json();
-        console.log(`✅ GET /api/approvals Status: ${getApprovalsRes.status}`);
-        console.log(`Found ${getApprovalsData.length} approval requests.\n`);
+        // --- 4. New Owner Acceptance (Execution) ---
+        console.log("--- STEP 3: ACTION LAYER EXECUTION ---");
+        const ownerRes = await fetch(`${BASE_URL}/approvals/${approvalId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                status: 'accepted by new owner', 
+                actorUid: toUser.uid 
+            })
+        });
+        const ownerData = await ownerRes.json();
+        console.log("Owner Acceptance JSON:", JSON.stringify(ownerData, null, 2), "\n");
 
-        // Test 7: GET /api/tasks (Execution Task List)
-        console.log("Testing 7: GET /api/tasks...");
-        const getTasksRes = await fetch(`${BASE_URL}/tasks`);
-        const getTasksData = await getTasksRes.json();
-        console.log(`✅ GET /api/tasks Status: ${getTasksRes.status}`);
-        console.log(`Found ${getTasksData.length} active tasks.\n`);
+        // --- 5. Final Load Verification ---
+        console.log("--- FINAL VERIFICATION ---");
+        const finalUsersRes = await fetch(`${BASE_URL}/users`);
+        const finalUsers = await finalUsersRes.json();
+        
+        console.log("Updated User Loads:");
+        finalUsers.forEach(u => {
+            console.log(`- ${u.name}: ${u.current_load.toFixed(2)}`);
+        });
 
+        // --- 6. Log Audit ---
+        const logsRes = await fetch(`${BASE_URL}/logs`);
+        const logs = await logsRes.json();
+        console.log("\nLatest Log Entry:", JSON.stringify(logs[0], null, 2));
 
-        // Test 8: GET /api/log
-        console.log("Testing 8: GET /api/logs...");
-        const getLogRes = await fetch(`${BASE_URL}/logs`);
-        const getLogData = await getLogRes.json();
-        console.log(`✅ GET /api/log Status: ${getLogRes.status}`);
-        console.log(`Found ${getLogData.length} log.\n`);
-
-        console.log("🎉 All basic fetch tests completed successfully.");
+        console.log("\n🎉 Workflow Test Finished.");
 
     } catch (error) {
-        console.error("Error details:", error.message);
+        console.error("\n❌ TEST ERROR:", error.message);
     }
 };
 
