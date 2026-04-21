@@ -10,14 +10,5 @@ router.get('/', async (req, res) => {
         res.status(500).json({error: err.message});
     }
 })
-router.get('/reassign', async (req, res) => {
-    const { tid, fromUid, toUid, reason } = req.body;
-    try {
-        await dbService.reassignTask(tid, fromUid, toUid, reason);
-        res.status(200).json({ success: true, message: "Task moved successfully" });
-    } catch (err) {
-        res.status(500).json({error:err.message});
-    }
-});
 
 module.exports = router;
