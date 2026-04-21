@@ -1,4 +1,21 @@
 import json
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# Setup Firebase
+cred = credentials.Certificate("backend/service-account.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
+
+def get_live_context():
+    # Fetch real-time data for your GLM reasoning
+    members = db.collection('users').stream()
+    tasks = db.collection('tasks').stream()
+    
+    team_load_map = [m.to_dict() for m in members]
+    orphaned_tasks = [t.to_dict() for t in tasks]
+    
+    return team_load_map, orphaned_tasks
 
 def run_impact_analysis(absence_trigger_text, team_load_data, orphaned_tasks):
     '''
@@ -72,3 +89,14 @@ mock_team = [
 # To run the test, uncomment the following lines:
 # result = run_impact_analysis(mock_noise, mock_team, mock_tasks)
 # print(result)
+
+
+def save_suggestion(suggestion_data):
+    # This pushes your AI decision to the 'approvals' collection
+    # so Task 3 can see it and update Jira
+    db.collection('approvals').add({
+        **suggestion_data,
+        'status': 'pending',
+        'timestamp': firestore.SERVER_TIMESTAMP
+    })
+    print("Decision saved to Approvals Collection.")
