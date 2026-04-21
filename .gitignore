@@ -16,6 +16,11 @@ build/
 .env.test.local
 .env.production.local
 *.env*
+credentials.json
+token.json
+*.key
+venv/
+.venv/
 
 # Firebase Service Accounts and Keys
 backend/*.json
@@ -40,6 +45,18 @@ logs/
 *.sln
 *.sw?
 
+# Python / Sensor Specific
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+
+*.xw_md/

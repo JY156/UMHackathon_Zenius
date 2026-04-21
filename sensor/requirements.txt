@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+redis
+httpx
+pydantic-settings
+python-dotenv
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+slack_sdk

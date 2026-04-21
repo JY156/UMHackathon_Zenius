@@ -18,7 +18,6 @@ router.post('/', async (req, res) => {
     }
 });
 
-// 2. XWei's Fetch (GET) - Pulls data out
 router.get('/', async (req, res) => {
     try {
         const data = await dbService.getInputs();
