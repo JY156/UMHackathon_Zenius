@@ -17,157 +17,176 @@ import {
   FileText, 
   MessageSquarePlus,
   Save,
-  LogOut
+  LogOut,
+  ChevronRight,
+  Monitor,
+  Globe,
+  Database,
+  Key
 } from "lucide-react";
 
 export default function SettingsPage() {
   const [username, setUsername] = useState("John Doe");
   const [email, setEmail] = useState("johndoe@zenius.ai");
-  const [role] = useState("Manager"); // Read-only
+  const [role] = useState("Platform Manager");
   const [notifications, setNotifications] = useState({
     email: true,
     inApp: true,
     push: false
   });
-  const [privacy, setPrivacy] = useState({
-    showWorkload: true,
-    showStress: false
-  });
 
   return (
     <AppShell>
-      <div className="flex-1 space-y-10 p-8 max-w-5xl mx-auto font-sans">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-sidebar-accent-foreground font-serif">Settings</h1>
-          <p className="text-muted-foreground font-sans">
-            Manage your account settings, preferences, and system configurations.
-          </p>
+      <div className="max-w-[1000px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold tracking-tight text-[#0F172A]">Settings</h1>
+          <p className="text-[#64748B] text-sm">Manage your workspace preferences and security</p>
         </div>
 
-        {/* 1. Profile Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 border-b border-border pb-2">
-            <User className="h-5 w-5 text-sidebar-primary" />
-            <h2 className="text-xl font-semibold">Profile</h2>
-          </div>
+        <div className="grid grid-cols-1 gap-8">
           
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="flex flex-col items-center space-y-4 p-6 rounded-xl border border-dashed border-border bg-gray-50/50">
-              <div className="relative group">
-                <div className="h-24 w-24 rounded-full bg-sidebar-primary/10 flex items-center justify-center border-2 border-sidebar-primary overflow-hidden">
-                  <User className="h-12 w-12 text-sidebar-primary" />
-                </div>
-                <button className="absolute bottom-0 right-0 p-1.5 bg-sidebar-primary text-white rounded-full shadow-lg hover:scale-110 transition-transform">
-                  <Camera className="h-4 w-4" />
+          {/* Main Content Area */}
+          <div className="space-y-8">
+            
+            {/* Profile Card */}
+            <section className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-[#F1F5F9] flex items-center justify-between bg-slate-50/50">
+                <h2 className="text-lg font-semibold text-[#0F172A]">Public Profile</h2>
+                <button className="flex items-center gap-2 px-4 py-2 bg-[#2D4A3E] text-white rounded-lg text-sm font-bold hover:bg-[#1F332A] transition-all shadow-sm active:scale-95">
+                  <Save size={16} />
+                  Save Changes
                 </button>
               </div>
-              <div className="text-center">
-                <p className="text-sm font-bold">{role}</p>
-                <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Primary Role</p>
-              </div>
-            </div>
+              
+              <div className="p-6 space-y-8">
+                {/* Avatar Row */}
+                <div className="flex items-center gap-6">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-2xl bg-[#E8F5E9] flex items-center justify-center text-[#2D4A3E] text-3xl font-bold border-2 border-white shadow-md overflow-hidden ring-4 ring-emerald-50">
+                      JD
+                    </div>
+                    <button className="absolute -bottom-2 -right-2 bg-white p-2 rounded-lg shadow-lg border border-slate-100 text-slate-600 hover:text-emerald-600 transition-colors">
+                      <Camera size={16} />
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-[#0F172A]">Profile Picture</h3>
+                    <p className="text-xs text-slate-500">JPG, GIF or PNG. Max size 2MB.</p>
+                  </div>
+                </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">Username</label>
-                <input 
-                  type="text" 
-                  value={username} 
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-sidebar-primary outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">Email Address</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="email" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-sidebar-primary outline-none"
-                  />
-                  <button className="px-3 py-1 text-xs font-semibold bg-sidebar-accent text-sidebar-accent-foreground rounded-md border border-sidebar-border hover:bg-sidebar-primary/10">
-                    Verify
-                  </button>
+                {/* Form Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input 
+                        type="text" 
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input 
+                        type="email" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Account Role</label>
+                    <div className="relative">
+                      <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input 
+                        type="text" 
+                        value={role}
+                        readOnly
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <button className="flex items-center gap-2 text-sm font-semibold text-sidebar-primary hover:underline">
-                <Lock className="h-4 w-4" />
-                Change Password
+            </section>
+
+            {/* Notification Preferences */}
+            <section className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-[#F1F5F9] bg-slate-50/50">
+                <h2 className="text-lg font-semibold text-[#0F172A]">Notification Preferences</h2>
+              </div>
+              <div className="p-6 divide-y divide-slate-100">
+                {[
+                  { key: 'email', label: 'Email Notifications', desc: 'Receive daily summaries and critical alerts' },
+                  { key: 'inApp', label: 'In-App Alerts', desc: 'Real-time updates within the dashboard' },
+                  { key: 'push', label: 'Push Notifications', desc: 'Browser notifications for direct mentions' },
+                ].map((pref) => (
+                  <div key={pref.key} className="py-4 first:pt-0 last:pb-0 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-slate-800">{pref.label}</p>
+                      <p className="text-xs text-slate-500">{pref.desc}</p>
+                    </div>
+                    <button 
+                      onClick={() => setNotifications(prev => ({ ...prev, [pref.key]: !prev[pref.key as keyof typeof notifications] }))}
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${
+                        notifications[pref.key as keyof typeof notifications] ? 'bg-emerald-600' : 'bg-slate-200'
+                      }`}
+                    >
+                      <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                        notifications[pref.key as keyof typeof notifications] ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Security Section */}
+            <section className="bg-white rounded-2xl border border-[#E2E8F0] p-6 text-slate-900 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-emerald-50 rounded-lg">
+                  <Key size={20} className="text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">Privacy & Security</h2>
+                  <p className="text-slate-500 text-xs text-balance">Ensure your data and credentials stay protected</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <button className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl text-sm transition-all text-slate-700">
+                  <div className="flex items-center gap-3">
+                    <Smartphone size={16} />
+                    Two-Factor Authentication
+                  </div>
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Enabled</span>
+                </button>
+                <button className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl text-sm transition-all text-slate-700">
+                  <div className="flex items-center gap-3">
+                    <Lock size={16} />
+                    Change Password
+                  </div>
+                  <ChevronRight size={16} className="opacity-40" />
+                </button>
+              </div>
+            </section>
+
+            {/* Sign Out Section */}
+            <div className="pt-4 border-t border-slate-100 flex justify-end">
+              <button className="flex items-center gap-3 px-6 py-2.5 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 transition-all border border-rose-100">
+                <LogOut size={18} />
+                Sign Out
               </button>
             </div>
           </div>
-        </section>
-
-        {/* 2. Preferences Section */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 border-b border-border pb-2">
-            <Bell className="h-5 w-5 text-sidebar-primary" />
-            <h2 className="text-xl font-semibold">Preferences</h2>
-          </div>
-
-          <div className="rounded-xl border border-border bg-white p-6 space-y-4">
-            <p className="font-semibold flex items-center gap-2">
-              Notification Delivery
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {['email', 'inApp', 'push'].map((type) => (
-                <label key={type} className="flex items-center gap-2 cursor-pointer group">
-                  <input 
-                    type="checkbox" 
-                    checked={(notifications as any)[type]} 
-                    onChange={() => setNotifications(prev => ({ ...prev, [type]: !(prev as any)[type] }))}
-                    className="w-4 h-4 rounded border-gray-300 text-sidebar-primary focus:ring-sidebar-primary"
-                  />
-                  <span className="text-sm capitalize text-muted-foreground group-hover:text-foreground transition-colors">{type === 'inApp' ? 'In-App' : type}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 4. System & Advanced */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-2 border-b border-border pb-2">
-            <Info className="h-5 w-5 text-sidebar-primary" />
-            <h2 className="text-xl font-semibold">System & Advanced</h2>
-          </div>
-
-          <div className="rounded-xl bg-card border border-border overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-border">
-              <div className="p-6 space-y-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-bold">Application Version</p>
-                  <code className="text-[10px] bg-secondary px-1.5 py-0.5 rounded font-mono">v1.5.15-stable (Build 2026.04.21)</code>
-                </div>
-                <button className="flex items-center gap-2 text-sm p-2 rounded border border-border bg-secondary hover:bg-muted transition-colors w-full justify-center">
-                  <FileText className="h-4 w-4" />
-                  Open Error Log Viewer
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <p className="text-sm font-bold flex items-center gap-2">
-                  <MessageSquarePlus className="h-4 w-4" />
-                  Submit Feedback
-                </p>
-                <textarea 
-                  placeholder="Tell us what you think or report a bug..."
-                  className="w-full h-24 rounded-md border border-input bg-background p-3 text-sm focus:ring-1 focus:ring-sidebar-primary outline-none resize-none"
-                ></textarea>
-                <button className="w-full bg-sidebar-primary text-sidebar-primary-foreground py-2 rounded-md text-sm font-semibold hover:opacity-90">
-                  Send Message
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Footer Actions */}
-        <div className="flex items-center justify-end pt-10 border-t border-border mt-10">
-          <button className="flex items-center gap-2 bg-rose-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-rose-600/20 hover:bg-rose-700 hover:-translate-y-0.5 transition-all">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </button>
         </div>
       </div>
     </AppShell>

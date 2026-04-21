@@ -26,8 +26,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/resources", label: "Resources", icon: Library },
-  { href: "/alerts", label: "Alerts", icon: Bell },
-  { href: "/reassignments", label: "Reassignments", icon: GitBranchPlus },
+  { href: "/task-adjustments", label: "Task Adjustments", icon: GitBranchPlus },
   { href: "/analytics", label: "Analytics", icon: ChartColumn },
   { href: "/team", label: "Team", icon: Users },
   { href: "/ai-agent", label: "AI Agent", icon: Bot },

@@ -171,7 +171,6 @@ export default function AiAgentPage() {
             </div>
           )}
         </div>
-      </div>
 
         {/* Chatbox Container (Stuck to Bottom) */}
         <div className="border-t border-slate-100 bg-transparent backdrop-blur-md pt-6 pb-12 px-4 shrink-0">
@@ -243,6 +242,3 @@ export default function AiAgentPage() {
     </AppShell>
   );
 }
- 
-
-

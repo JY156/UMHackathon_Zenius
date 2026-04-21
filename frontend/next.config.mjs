@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    outputFileTracingRoot: '../',
-  },
+  outputFileTracingRoot: '../',
 };
 
 export default nextConfig;
