@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase-admin');
+const { db, admin } = require('../config/firebase-admin');
 
 const dbService = {
     testConnection: async () => {
@@ -14,112 +14,221 @@ const dbService = {
             return false;
         }
     },
+
+    //Helpers
+    addLog: async (type, severity, detail) => {
+        await db.collection('logs').add({
+            timestamp: admin.firestore.FieldValue.serverTimestamp(), // Field is 'timestamp'
+            type,
+            severity,
+            detail
+        });
+    },
+
+    calculateLoadForUser: async (userId, sentimentScore) => {
+        const tasksSnapshot = await db.collection('tasks')
+            .where('assignedTo', '==', userId)
+            .where('status', '!=', 'completed')
+            .get();
+
+        const taskScore = tasksSnapshot.docs.reduce((acc, doc) => {
+            const task = doc.data();
+            const difficulty = task.category === 'Professional' ? 1.5 : 1.0;
+            return acc + (task.priority * difficulty);
+        }, 0);
+
+        const sentiment = sentimentScore !== undefined ? sentimentScore : 1.0;
+        const sentimentPenalty = (1 - sentiment) * 10;
+
+        return taskScore + sentimentPenalty;
+    },
+
+    //Inputs
     saveInput: async (source, content, metadata = {}) => {
-        const newEntry = {
+        const docRef = await db.collection('inputs').add({
             source,
             content,
             processed: false,
             sentiment: {},
             timestamp: new Date(),
             metadata
-        };
-        
-        const docRef = await db.collection('inputs').add(newEntry);
+        });
         return docRef.id;
     },
+
     getInputs: async () => {
         const snapshot = await db.collection('inputs')
             .where('processed', '==', false)
             .get();
             
-        return snapshot.docs.map(doc => ({ 
-            id: doc.id, 
-            ...doc.data() 
-        }));
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
+
+    //Users
     getUsers: async () => {
         try {
             const usersSnapshot = await db.collection('users').get();
-            const tasksSnapshot = await db.collection('tasks').get();
-            
-            const tasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            return usersSnapshot.docs.map(doc => {
-            const userData = doc.data();
-            const userTasks = tasks.filter(t => t.assignedTo === doc.id && t.status !== 'completed');
-            
-            // Calculate Load Score
-            const taskLoad = userTasks.reduce((acc, task) => {
-                const difficulty = task.category === 'Professional' ? 1.5 : 1.0;
-                return acc + (task.priority * difficulty);
-            }, 0);
-            
-            const sentimentPenalty = (1 - userData.sentiment_score) * 10;
-            const totalLoad = taskLoad + sentimentPenalty;
-
-            return { uid: doc.id, ...userData, current_load: totalLoad, activeTasks: userTasks.length };
+            const userPromises = usersSnapshot.docs.map(async (doc) => {
+                const userData = doc.data();
+                const totalLoad = await dbService.calculateLoadForUser(doc.id, userData.sentiment_score);
+                return { uid: doc.id, ...userData, current_load: totalLoad };
             });
-        } catch (error){
+            return await Promise.all(userPromises);
+        } catch (error) {
             console.error("getUsers failed", error);
-            return false;
+            return [];
         }
     },
-    getAllTasks: async ()  => {
+
+    getUserById: async (uid) => {
         try {
-            const tasksSnapshot = await db.collection('tasks').get();
-            return snapshot.docs.map(doc => ({
+            const userDoc = await db.collection('users').doc(uid).get();
+            if (!userDoc.exists) return null;
+
+            const userData = userDoc.data();
+            const currentLoad = await dbService.calculateLoadForUser(uid, userData.sentiment_score);
+
+            return { uid: userDoc.id, ...userData, current_load: currentLoad };
+        } catch (error) {
+            console.error("getUserById failed", error);
+            return null;
+        }
+    },
+
+    //Tasks
+    getAllTasks: async () => {
+        try {
+            const tasksSnapshot = await db.collection('tasks').get(); // Plural
+            return tasksSnapshot.docs.map(doc => ({ // Fixed typo
                 tid: doc.id,
                 ...doc.data()
             }));
-        } catch (error){
+        } catch (error) {
             console.error("getAllTasks failed", error);
+            return [];
+        }
+    },
+
+    addTask: async (taskData) => {
+        try {
+            const docRef = await db.collection('tasks').add({
+                ...taskData,
+                previousAssignee: [],
+                moveCount: 0,
+                status: taskData.status || 'todo'
+            });
+
+            const newLoad = await dbService.calculateLoadForUser(taskData.assignedTo);
+            await db.collection('users').doc(taskData.assignedTo).update({ current_load: newLoad });
+
+            await dbService.addLog("TASK_CREATED", "Info", { tid: docRef.id, assignedTo: taskData.assignedTo });
+            
+            return docRef.id;
+        } catch (error) {
+            console.error("addTask failed", error);
             return false;
         }
     },
-    // Reassign a task and log the event
+
     reassignTask: async (tid, fromUid, toUid, reason) => {
+        const taskRef = db.collection('tasks').doc(tid);
+        const fromUserRef = db.collection('users').doc(fromUid);
+        const toUserRef = db.collection('users').doc(toUid);
+
         try {
-            const taskRef = db.collection('tasks').doc(tid);
-            
-            return db.runTransaction(async (transaction) => {
-            const taskDoc = await transaction.get(taskRef);
-            const previousAssignees = taskDoc.data().previousAssignee || [];
-            
-            // 1. Update Task
-            transaction.update(taskRef, {
-                assignedTo: toUid,
-                previousAssignee: [...previousAssignees, fromUid],
-                moveCount: (taskDoc.data().moveCount || 0) + 1
+            await db.runTransaction(async (transaction) => {
+                const taskDoc = await transaction.get(taskRef);
+                const prev = taskDoc.data().previousAssignee || [];
+
+                transaction.update(taskRef, {
+                    assignedTo: toUid,
+                    previousAssignee: [...prev, fromUid],
+                    moveCount: (taskDoc.data().moveCount || 0) + 1
+                });
+
+                await dbService.addLog("REASSIGNMENT_EXECUTED", "Warning", { tid, fromUid, toUid, reason });
             });
 
-            // 2. Create Log entry
-            const logRef = db.collection('logs').doc();
-            transaction.set(logRef, {
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                type: "REASSIGNMENT",
-                severity: "Warning",
-                detail: { tid, fromUser: fromUid, toUser: toUid, reason }
-            });
-            });
+            const fromLoad = await dbService.calculateLoadForUser(fromUid);
+            const toLoad = await dbService.calculateLoadForUser(toUid);
+            await fromUserRef.update({ current_load: fromLoad });
+            await toUserRef.update({ current_load: toLoad });
+
+            return true;
         } catch (error) {
             console.error("reassignTask failed", error);
             return false;
         }
     },
+
+    //Approvals
     getApprovals: async () => {
         try {
             const snapshot = await db.collection('approvals')
-            .orderBy('createdAt', 'desc')
-            .get();
-            
-            const approvals = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-            }));
-            return approvals;
+                .orderBy('createdAt', 'desc')
+                .get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (error) {
             console.error("getApprovals failed", error);
+            return [];
+        }
+    },
+
+    createApprovalRequest: async (tid, fromUid, toUid, reasoning) => {
+        const newApproval = {
+            suggestedTid: tid,
+            fromUid,
+            toUid,
+            reasoning,
+            status: 'pending',
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        const docRef = await db.collection('approvals').add(newApproval);
+        await dbService.addLog("APPROVAL_REQUESTED", "Info", { tid, fromUid, toUid });
+        return docRef.id;
+    },
+
+    updateApprovalStatus: async (approvalId, newStatus, actorUid) => {
+        const approvalRef = db.collection('approvals').doc(approvalId);
+        
+        try {
+            let shouldReassign = false;
+            let approvalData = null;
+
+            await db.runTransaction(async (transaction) => {
+                const approvalDoc = await transaction.get(approvalRef);
+                if (!approvalDoc.exists) throw "Approval not found";
+                approvalData = approvalDoc.data();
+
+                transaction.update(approvalRef, { status: newStatus, updatedAt: new Date() });
+
+                if (newStatus === 'accepted by new owner') {
+                    shouldReassign = true;
+                }
+            });
+
+            if (shouldReassign) {
+                await dbService.reassignTask(approvalData.suggestedTid, approvalData.fromUid, approvalData.toUid, approvalData.reasoning);
+            }
+
+            await dbService.addLog("APPROVAL_UPDATED", "Info", { approvalId, newStatus, actorUid });
+            return true;
+        } catch (error) {
+            console.error("updateApprovalStatus failed", error);
             return false;
+        }
+    },
+
+    //Logs
+    getLogs: async () => {
+        try {
+            const snapshot = await db.collection('logs')
+                .orderBy('timestamp', 'desc')
+                .get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error("getLog failed", error);
+            return [];
         }
     }
 };

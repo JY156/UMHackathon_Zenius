@@ -10,13 +10,17 @@ router.get('/', async (req, res) => {
         res.status(500).json({error: err.message});
     }
 })
-router.get('/reassign', async (req, res) => {
-    const { tid, fromUid, toUid, reason } = req.body;
+
+router.post('/', async (req, res) => {
     try {
-        await dbService.reassignTask(tid, fromUid, toUid, reason);
-        res.status(200).json({ success: true, message: "Task moved successfully" });
-    } catch (err) {
-        res.status(500).json({error:err.message});
+        const taskId = await dbService.addTask(req.body);
+        if (taskId) {
+            res.status(201).json({ success: true, taskId });
+        } else {
+            res.status(400).json({ success: false, message: "Could not create task. Check user ID." });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 });
 

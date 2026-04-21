@@ -11,4 +11,24 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.post('/request', async (req, res) => {
+    try {
+        const { tid, fromUid, toUid, reasoning } = req.body;
+        const approvalId = await dbService.createApprovalRequest(tid, fromUid, toUid, reasoning);
+        res.status(201).json({ success: true, approvalId });
+    } catch (error) {
+        res.status(500).json({error:err.message});
+    }
+});
+
+router.patch('/:id', async (req, res) => {
+    try {
+        const { status, actorUid } = req.body;
+        const success = await dbService.updateApprovalStatus(req.params.id, status, actorUid);
+        res.status(200).json({ success });
+    } catch (error){
+        res.status(500).json({error:err.message});
+    }
+});
+
 module.exports = router;
