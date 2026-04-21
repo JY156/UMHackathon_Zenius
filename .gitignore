@@ -57,3 +57,6 @@ env/
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+
+*.xw_md/
