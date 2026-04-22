@@ -1,4 +1,5 @@
 const { db, admin } = require('../config/firebase-admin');
+const LOAD_CALCULATION = require('../utils/loadCalculationConstants');
 
 const dbService = {
     testConnection: async () => {
@@ -25,22 +26,36 @@ const dbService = {
         });
     },
 
+    /**
+     * Calculate total workload for a user based on assigned tasks and sentiment.
+     * Uses centralized LOAD_CALCULATION formula defined in loadCalculationConstants.
+     * 
+     * Formula: totalLoad = taskScore + sentimentPenalty
+     * - taskScore = Σ(priority × difficulty) for all non-completed tasks
+     * - difficulty = 1.5 for Professional, 1.0 for Administrative
+     * - sentimentPenalty = (1 - sentimentScore) × 10
+     * 
+     * @param {string} userId - The user ID to calculate load for
+     * @param {number} sentimentScore - User's sentiment score (0-1)
+     * @returns {Promise<number>} Total calculated load value
+     */
     calculateLoadForUser: async (userId, sentimentScore) => {
-        const tasksSnapshot = await db.collection('tasks')
-            .where('assignedTo', '==', userId)
-            .where('status', '!=', 'completed')
-            .get();
+        try {
+            // Fetch all non-completed tasks assigned to this user
+            const tasksSnapshot = await db.collection('tasks')
+                .where('assignedTo', '==', userId)
+                .where('status', '!=', LOAD_CALCULATION.EXCLUDED_STATUS)
+                .get();
 
-        const taskScore = tasksSnapshot.docs.reduce((acc, doc) => {
-            const task = doc.data();
-            const difficulty = task.category === 'Professional' ? 1.5 : 1.0;
-            return acc + (task.priority * difficulty);
-        }, 0);
+            // Extract task data and use centralized calculation
+            const tasks = tasksSnapshot.docs.map(doc => doc.data());
+            const totalLoad = LOAD_CALCULATION.calculateTotalLoad(tasks, sentimentScore);
 
-        const sentiment = sentimentScore !== undefined ? sentimentScore : 1.0;
-        const sentimentPenalty = (1 - sentiment) * 10;
-
-        return taskScore + sentimentPenalty;
+            return totalLoad;
+        } catch (error) {
+            console.error(`calculateLoadForUser failed for userId ${userId}:`, error);
+            return 0;
+        }
     },
 
     //Inputs

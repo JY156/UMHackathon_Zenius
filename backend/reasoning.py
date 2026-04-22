@@ -1,6 +1,11 @@
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
+from utils.load_calculation import (
+    BURNOUT_RISK_THRESHOLD,
+    is_burnout_risk,
+    calculate_total_load
+)
 
 # Setup Firebase
 cred = credentials.Certificate("backend/service-account.json")
@@ -21,6 +26,15 @@ def run_impact_analysis(absence_trigger_text, team_load_data, orphaned_tasks):
     '''
     This is your core 'Impact Analysis' script.
     It takes the noise (text), the team state (load map), and the tasks to be moved.
+    
+    Note: Load calculation follows the centralized formula from load_calculation.py:
+    totalLoad = taskScore + sentimentPenalty
+    where:
+      - taskScore = Σ(priority × difficulty) for non-completed tasks
+      - difficulty = 1.5 (Professional) or 1.0 (Administrative)
+      - sentimentPenalty = (1 - sentimentScore) × 10
+    
+    Burnout Risk Threshold: sentiment_score < 0.3
     '''
     
     # SYSTEM INSTRUCTION: This is the 'Brain' of Task 2
@@ -29,8 +43,8 @@ def run_impact_analysis(absence_trigger_text, team_load_data, orphaned_tasks):
         'Your goal: Reassign their tasks based on logic. '
         'CONSTRAINTS: '
         '1. Match task \'skills\' to member \'skills\'. '
-        '2. Prioritize members with the lowest \'current_load\'. '
-        '3. Avoid members with a \'sentiment_score\' below 0.3 (Burnout Risk). '
+        '2. Prioritize members with the lowest \'current_load\' (calculated as: taskScore + sentimentPenalty). '
+        f'3. Avoid members with a \'sentiment_score\' below {BURNOUT_RISK_THRESHOLD} (Burnout Risk). '
         '4. Output ONLY valid JSON.'
     )
 
