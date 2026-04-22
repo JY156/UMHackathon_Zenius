@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { AppShell } from "../_components/app-shell";
+import { useRoleStore } from "../_store/role-store";
 import { 
   Sparkles, 
   Send, 
@@ -21,11 +22,17 @@ import {
 } from "lucide-react";
 
 export default function AiAgentPage() {
+  const { role } = useRoleStore();
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"ask" | "agents">("ask");
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -33,6 +40,8 @@ export default function AiAgentPage() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
+
+  if (!mounted) return null;
 
   const handleSend = (text: string = input) => {
     const messageText = text || input;
@@ -71,16 +80,41 @@ export default function AiAgentPage() {
 
   const quickPrompts = {
     ask: [
-      { title: "My Tasks", sub: "What are my deadlines?", icon: <Clock size={16} />, text: "What are my high priority tasks for today?" },
-      { title: "Team Status", sub: "Who is online now?", icon: <Users size={16} />, text: "Who is currently available on the team?" },
-      { title: "About Zenius", sub: "How to use this tool?", icon: <Info size={16} />, text: "How can Zenius help me with my workflow?" },
-      { title: "Summarize", sub: "Shorten my notes", icon: <FileText size={16} />, text: "Summarize my most recent project notes" },
+      { 
+        title: "My Tasks", 
+        sub: "What are my deadlines?", 
+        icon: <Clock size={16} />, 
+        text: "What are my high priority tasks for today?" 
+      },
+      { 
+        title: "Team Status", 
+        sub: role === "manager" ? "Who is online now?" : "Who is on my team?", 
+        icon: <Users size={16} />, 
+        text: role === "manager" ? "Who is currently available on the team?" : "Show me my team members and their availability." 
+      },
+      { 
+        title: "Request Reassignment", 
+        sub: "Need help with a task?", 
+        icon: <RefreshCcw size={16} />, 
+        text: "I am overwhelmed with my current tasks. Can you suggest a reassignment for 'Task: UI Refactor'?" 
+      },
+      { 
+        title: "About Zenius", 
+        sub: "How to use this tool?", 
+        icon: <Info size={16} />, 
+        text: "How can Zenius help me with my work today?" 
+      },
     ],
-    agents: [
+    agents: role === "manager" ? [
       { title: "Assign Task", sub: "Create new Jira ticket", icon: <Briefcase size={16} />, text: "Assign a new development task to the next available dev" },
       { title: "Reassign Work", sub: "Balance the team load", icon: <RefreshCcw size={16} />, text: "Optimize team workload and reassign over-capacity tasks" },
       { title: "Burnout Check", sub: "Risk assessment", icon: <BrainCircuit size={16} />, text: "Analyze team burnout risk based on current sprint" },
       { title: "Generate Report", sub: "Weekly performance", icon: <Sparkles size={16} />, text: "Generate a weekly performance report for the engineering team" },
+    ] : [
+      { title: "Skill Analysis", sub: "My growth areas", icon: <Briefcase size={16} />, text: "What skills should I focus on based on my recent tasks?" },
+      { title: "Workload Sync", sub: "Context summary", icon: <FileText size={16} />, text: "Summarize the context of my assigned tasks this week" },
+      { title: "Burnout Risk", sub: "Personal check", icon: <BrainCircuit size={16} />, text: "Am I at risk of burnout based on my current ticket weight?" },
+      { title: "Performance", sub: "Personal KPIs", icon: <Sparkles size={16} />, text: "Show my task completion performance for this sprint" },
     ]
   };
 
@@ -140,7 +174,7 @@ export default function AiAgentPage() {
                     </p>
                   </div>
 
-                  {msg.actions && (
+                  {msg.actions && role === "manager" && (
                     <div className="flex items-center gap-2 pt-2">
                       <button className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-[0.98]">
                         <Check size={14} /> Approve
@@ -151,6 +185,14 @@ export default function AiAgentPage() {
                       <button className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300 rounded-lg transition-all active:scale-[0.98]">
                         <Settings2 size={16} />
                       </button>
+                    </div>
+                  )}
+                  {msg.actions && role === "worker" && (
+                    <div className="pt-2 px-1">
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-100">
+                        <Info size={12} />
+                        MANAGER AUTHORIZATION REQUIRED FOR ACTION
+                      </div>
                     </div>
                   )}
                 </div>
