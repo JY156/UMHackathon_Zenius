@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "../_components/app-shell";
+import { useRoleStore } from "../_store/role-store";
 import { 
   AlertCircle, 
   CheckCircle2, 
@@ -60,97 +61,111 @@ const history = [
 ];
 
 export default function TaskAdjustmentsPage() {
+  const { role } = useRoleStore();
+  const [mounted, setMounted] = useState(false);
   const [filterType, setFilterType] = useState("All");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   return (
     <AppShell>
-      <div className="space-y-10 pb-12">
+      <div className="space-y-10 pb-12 animate-in fade-in duration-500">
         {/* 1. Page Header */}
         <header className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Task Adjustments</h1>
-          <p className="text-muted-foreground font-medium">Manage alerts and track reassignments</p>
+          <p className="text-muted-foreground font-medium">
+            {role === "manager" 
+              ? "Manage alerts and track reassignments" 
+              : "Review your task reassignment history"}
+          </p>
         </header>
 
-        {/* 2. Pending Alerts Section */}
-        <section className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-            <h2 className="text-xl font-bold text-sidebar flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              Pending Alerts
-            </h2>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
-                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                <select className="bg-transparent focus:outline-none">
-                  <option>Status: Pending</option>
-                  <option>Status: Resolved</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
-                <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                <select className="bg-transparent focus:outline-none">
-                  <option>Type: All</option>
-                  <option>Type: Absence</option>
-                  <option>Type: Overload</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
-                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">Past 7 Days</span>
+        {role === "manager" && (
+          /* 2. Pending Alerts Section */
+          <section className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
+              <h2 className="text-xl font-bold text-sidebar flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-orange-500" />
+                Pending Alerts
+              </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                  <select className="bg-transparent focus:outline-none">
+                    <option>Status: Pending</option>
+                    <option>Status: Resolved</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
+                  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                  <select className="bg-transparent focus:outline-none">
+                    <option>Type: All</option>
+                    <option>Type: Absence</option>
+                    <option>Type: Overload</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-muted-foreground">Past 7 Days</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {alerts.map((alert) => (
-              <div key={alert.id} className="group relative rounded-2xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md">
-                <div className={`absolute top-0 left-0 w-1.5 h-full rounded-l-2xl ${alert.urgency === 'urgent' ? 'bg-red-500' : 'bg-orange-500'}`} />
-                
-                <div className="flex items-start justify-between mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {alerts.map((alert) => (
+                <div key={alert.id} className="group relative rounded-2xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                  <div className={`absolute top-0 left-0 w-1.5 h-full rounded-l-2xl ${alert.urgency === 'urgent' ? 'bg-red-500' : 'bg-orange-500'}`} />
+                  
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                        <User className="h-6 w-6 text-sidebar-primary" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sidebar">{alert.name}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span className={`w-2 h-2 rounded-full ${alert.type === 'Absence' ? 'bg-blue-500' : 'bg-purple-500'}`} />
+                          {alert.trigger} ({alert.type})
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-sidebar">{alert.affectedTasks}</p>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Tasks Affected</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 relative">
+                    <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold mb-2">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      ZENIUS AI RECOMMENDATION
+                    </div>
+                    <p className="text-sm text-emerald-800 leading-relaxed font-medium">
+                      {alert.recommendation}
+                    </p>
+                  </div>
+
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                      <User className="h-6 w-6 text-sidebar-primary" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-sidebar">{alert.name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <span className={`w-2 h-2 rounded-full ${alert.type === 'Absence' ? 'bg-blue-500' : 'bg-purple-500'}`} />
-                        {alert.trigger} ({alert.type})
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-sidebar">{alert.affectedTasks}</p>
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Tasks Affected</p>
+                    <button className="flex-1 bg-sidebar-primary text-white rounded-lg px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Approve
+                    </button>
+                    <button className="flex items-center justify-center w-11 h-11 rounded-lg border border-border text-muted-foreground hover:bg-gray-50 transition-colors">
+                      <RefreshCcw className="h-4 w-4" />
+                    </button>
+                    <button className="flex items-center justify-center w-11 h-11 rounded-lg border border-border text-red-500 hover:bg-red-50 hover:border-red-100 transition-colors">
+                      <XCircle className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-
-                <div className="mb-6 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 relative">
-                  <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold mb-2">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    ZENIUS AI RECOMMENDATION
-                  </div>
-                  <p className="text-sm text-emerald-800 leading-relaxed font-medium">
-                    {alert.recommendation}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button className="flex-1 bg-sidebar-primary text-white rounded-lg px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Approve
-                  </button>
-                  <button className="flex items-center justify-center w-11 h-11 rounded-lg border border-border text-muted-foreground hover:bg-gray-50 transition-colors">
-                    <RefreshCcw className="h-4 w-4" />
-                  </button>
-                  <button className="flex items-center justify-center w-11 h-11 rounded-lg border border-border text-red-500 hover:bg-red-50 hover:border-red-100 transition-colors">
-                    <XCircle className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 3. Reassignment History Section */}
         <section className="space-y-6 pt-6">

@@ -1,6 +1,7 @@
 import "@/app/globals.css";
 import type { Metadata } from "next";
 import { Poppins, Libre_Baskerville, IBM_Plex_Mono } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 
 const fontSans = Poppins({
   weight: ["400", "500", "600", "700"],
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}>
+        <Toaster position="top-center" reverseOrder={false} />
         {children}
       </body>
     </html>

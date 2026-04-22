@@ -1,4 +1,8 @@
+"use client";
+
 import { AppShell } from "./_components/app-shell";
+import { useState, useEffect } from "react";
+import { useRoleStore } from "./_store/role-store";
 import { 
   Bell, 
   CheckCircle2, 
@@ -7,7 +11,11 @@ import {
   AlertTriangle,
   ClipboardCheck,
   History,
-  Info
+  Info,
+  ArrowUpRight,
+  Target,
+  Clock,
+  CalendarCheck
 } from "lucide-react";
 
 const stats = [
@@ -45,6 +53,41 @@ const stats = [
   },
 ];
 
+const workerStats = [
+  { 
+    label: "Assigned Tasks", 
+    value: "12", 
+    icon: ClipboardCheck, 
+    trend: "on-track", 
+    color: "text-blue-500",
+    bg: "bg-blue-50 text-blue-600"
+  },
+  { 
+    label: "Completion Rate", 
+    value: "94%", 
+    icon: Target, 
+    trend: "positive", 
+    color: "text-green-500",
+    bg: "bg-green-50 text-green-600"
+  },
+  { 
+    label: "Pending Review", 
+    value: "03", 
+    icon: Clock, 
+    trend: "stable", 
+    color: "text-orange-500",
+    bg: "bg-orange-50 text-orange-600"
+  },
+  { 
+    label: "Current Status", 
+    value: "Available", 
+    icon: CalendarCheck, 
+    trend: "active", 
+    color: "text-emerald-500",
+    bg: "bg-emerald-50 text-emerald-600"
+  },
+];
+
 const teamWorkload = [
   { name: "Sarah Connor", role: "Ops Lead", load: 95, status: "heavy" },
   { name: "Amir Khan", role: "Developer", load: 40, status: "light" },
@@ -61,18 +104,33 @@ const recentActivity = [
 ];
 
 export default function DashboardPage() {
+  const { role } = useRoleStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  const currentStats = role === "manager" ? stats : workerStats;
+
   return (
     <AppShell>
       <div className="space-y-8 pb-12">
         {/* 1. Page Header */}
         <header className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground font-medium">Your team’s resilience and workload overview</p>
+          <p className="text-muted-foreground font-medium">
+            {role === "manager" 
+              ? "Your team’s resilience and workload overview" 
+              : "Overview of your personal performance and task status"}
+          </p>
         </header>
 
         {/* 2. Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((item) => (
+          {currentStats.map((item) => (
             <article
               key={item.label}
               className="group relative overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300"
@@ -87,17 +145,24 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="mt-4 flex items-center gap-2 text-xs font-medium">
-                <span className={item.color}>
-                  {item.trend === "positive" ? "↑ 12%" : item.trend === "increase" ? "↑ 5%" : "Stable"}
-                </span>
-                <span className="text-muted-foreground">vs last 24h</span>
+                {role === "manager" ? (
+                  <>
+                    <span className={item.color}>
+                      {item.trend === "positive" ? "↑ 12%" : item.trend === "increase" ? "↑ 5%" : "Stable"}
+                    </span>
+                    <span className="text-muted-foreground">vs last 24h</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">Updated just now</span>
+                )}
               </div>
             </article>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* 3. Team Workload grid */}
+        {role === "manager" ? (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* 3. Team Workload grid */}
           <section className="xl:col-span-2 rounded-2xl border border-border bg-white p-8 shadow-sm">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -176,6 +241,67 @@ export default function DashboardPage() {
             </div>
           </section>
         </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* 5. Personal Progress */}
+            <section className="rounded-2xl border border-border bg-white p-8 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4">
+                <Target className="h-16 w-16 text-emerald-50 opacity-10" />
+              </div>
+              <h2 className="text-xl font-bold text-sidebar mb-6">Current Sprint Progress</h2>
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-sm font-bold text-sidebar">Sprint #24 Goals</span>
+                    <span className="text-2xl font-black text-sidebar">78%</span>
+                  </div>
+                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden border border-gray-200">
+                    <div className="h-full bg-gradient-to-r from-emerald-500 to-green-400 w-[78%] rounded-full shadow-sm" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4 pt-4">
+                  <div className="text-center p-3 rounded-xl bg-gray-50 border border-border">
+                    <p className="text-xl font-bold text-sidebar">9</p>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Done</p>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-gray-50 border border-border">
+                    <p className="text-xl font-bold text-sidebar">2</p>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground">In Review</p>
+                  </div>
+                  <div className="text-center p-3 rounded-xl bg-gray-50 border border-border">
+                    <p className="text-xl font-bold text-sidebar">1</p>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Blocked</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 6. Upcoming Priorities */}
+            <section className="rounded-2xl border border-border bg-white p-8 shadow-sm">
+              <h2 className="text-xl font-bold text-sidebar mb-6 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-sidebar-primary" />
+                Upcoming Deadlines
+              </h2>
+              <div className="space-y-4">
+                {[
+                  { task: "Finish frontend unit tests", deadline: "Today, 5pm", priority: "high" },
+                  { task: "Update documentation", deadline: "Tomorrow, 12pm", priority: "medium" },
+                  { task: "Sprint retrospective", deadline: "Friday, 10am", priority: "medium" },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${item.priority === 'high' ? 'bg-red-500' : 'bg-orange-500'}`} />
+                      <p className="text-sm font-bold text-sidebar">{item.task}</p>
+                    </div>
+                    <span className="text-[10px] font-bold text-muted-foreground bg-gray-100 px-2 py-1 rounded-md">
+                      {item.deadline}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     </AppShell>
   );

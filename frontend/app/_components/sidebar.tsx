@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ComponentType } from "react";
+import { useState, useEffect, type ComponentType } from "react";
+import { useRoleStore } from "../_store/role-store";
 import {
   Bot,
   Bell,
@@ -21,6 +22,7 @@ type NavItem = {
   href: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
+  roles?: ("manager" | "worker")[];
 };
 
 const navItems: NavItem[] = [
@@ -42,13 +44,18 @@ function isActive(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { role } = useRoleStore();
+  const [mounted, setMounted] = useState(false);
   // Initialize from localStorage if available, otherwise default to false
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("sidebar-collapsed") === "true";
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved !== null) {
+      setIsCollapsed(saved === "true");
     }
-    return false;
-  });
+  }, []);
 
   const handleToggle = () => {
     const newState = !isCollapsed;
@@ -57,6 +64,13 @@ export function Sidebar() {
   };
 
   const teamActive = pathname.startsWith("/team");
+
+  // If not mounted, render a shell or null to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <aside className="flex h-screen w-[260px] flex-col bg-sidebar p-5" />
+    );
+  }
 
   return (
     <aside 
@@ -67,7 +81,10 @@ export function Sidebar() {
       <div className="space-y-4">
         <div className="flex items-center justify-between rounded-[4px] bg-sidebar px-2 py-2">
           {!isCollapsed && (
-            <p className="text-sm font-bold tracking-tight">Zenius AI</p>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold tracking-tight">Zenius AI</p>
+              <p className="text-[10px] uppercase font-bold text-sidebar-foreground/50 tracking-widest">{role}</p>
+            </div>
           )}
           <button
             onClick={handleToggle}
@@ -90,6 +107,7 @@ export function Sidebar() {
               <div key={item.href}>
                 <Link
                   href={item.href}
+                  prefetch={false}
                   className={`flex items-center gap-2 rounded-[4px] px-3 py-2 text-sm transition-colors ${
                     active
                       ? "bg-sidebar-primary text-sidebar-primary-foreground font-semibold"
