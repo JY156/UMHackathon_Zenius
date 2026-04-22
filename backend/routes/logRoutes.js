@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Database read failed" });
+        res.status(500).json({error: error.message});
     }
 });
 

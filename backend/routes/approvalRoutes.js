@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
         const approvals = await dbService.getApprovals();
         res.status(200).json(approvals);
     } catch (error) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -17,7 +17,7 @@ router.post('/request', async (req, res) => {
         const approvalId = await dbService.createApprovalRequest(tid, fromUid, toUid, reasoning);
         res.status(201).json({ success: true, approvalId });
     } catch (error) {
-        res.status(500).json({error:err.message});
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -27,7 +27,7 @@ router.patch('/:id', async (req, res) => {
         const success = await dbService.updateApprovalStatus(req.params.id, status, actorUid);
         res.status(200).json({ success });
     } catch (error){
-        res.status(500).json({error:err.message});
+        res.status(500).json({error: error.message});
     }
 });
 

@@ -6,8 +6,8 @@ router.get('/', async (req, res) => {
     try {
         const users = await dbService.getUsers();
         res.status(200).json(users);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+       res.status(500).json({error: error.message});
     }
 });
 
@@ -20,7 +20,7 @@ router.get('/:id', async (req, res) => {
             res.status(404).json({ success: false, message: "User not found" });
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        res.status(500).json({error: error.message});
     }
 });
 

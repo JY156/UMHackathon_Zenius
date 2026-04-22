@@ -14,7 +14,7 @@ router.post('/', async (req, res) => {
         res.status(201).json({ message: "Data received by Zenius", id: docId });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Database write failed" });
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Database read failed" });
+       res.status(500).json({error: error.message});
     }
 });
 

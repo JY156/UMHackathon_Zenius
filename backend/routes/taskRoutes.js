@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
         const tasks = await dbService.getAllTasks();
         res.status(200).json(tasks);
     } catch (error) {
-        res.status(500).json({error: err.message});
+        res.status(500).json({error: error.message});
     }
 })
 
@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
             res.status(400).json({ success: false, message: "Could not create task. Check user ID." });
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        res.status(500).json({error: error.message});
     }
 });
 
