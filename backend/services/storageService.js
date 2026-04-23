@@ -17,16 +17,6 @@ const storageService = {
             console.error("Storage upload failed:", error);
             throw new Error("Failed to upload file to storage");
         }
-    },
-
-    extractPdfText: async (fileBuffer) => {
-        try {
-            const data = await pdf(fileBuffer);
-            return data.text;
-        } catch (error) {
-            console.error("PDF Extraction failed:", error);
-            return "Error extracting PDF content";
-        }
     }
 };
 

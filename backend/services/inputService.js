@@ -2,32 +2,41 @@ const { db, admin } = require('../config/firebase-admin');
 const storageService = require('./storageService');
 
 const inputService = {
-    saveInput: async (source, content, metadata, fileData = null) => {
-        let fileUrl = null;
-        let parsedFileContent = null;
-        let batchId = metadata.subject ? `batch_${metadata.subject.replace(/\s+/g, '_')}` : null;
+    saveInput: async (data) => {
+        const {
+            source,
+            subject,
+            content,
+            hasAttachments,
+            fileName,
+            parsedFileContent,
+            fileBuffer
+        } = data;
 
-        if (fileData && fileData.buffer) {
-            if (fileData.originalname.toLowerCase().endsWith('.pdf')) {
-                parsedFileContent = await storageService.extractPdfText(fileData.buffer);
-            } else {
-                parsedFileContent = `[Attached file: ${fileData.originalname} (Image/Binary)]`;
+        let fileUrl = null;
+
+        // Upload file if buffer exists
+        if (fileBuffer && fileName) {
+            try {
+                fileUrl = await storageService.uploadFile(fileBuffer, fileName);
+                console.log(`✅ File uploaded: ${fileUrl}`);
+            } catch (uploadError) {
+                console.error("❌ Storage upload failed:", uploadError);
+                fileUrl = null;
             }
-            fileUrl = await storageService.uploadFile(fileData.buffer, fileData.originalname);
         }
 
+        // ✅ Save to Firestore: CLEAN, NO METADATA
         const docRef = await db.collection('inputs').add({
             source,
-            subject: metadata.subject || "No Subject",
-            content: content || "",
+            subject,
+            content,
+            hasAttachments: !!hasAttachments,
+            fileName: fileName || null,
+            fileUrl: fileUrl || null,
+            parsedFileContent: parsedFileContent || null,
             processed: false,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            metadata,
-            hasAttachments: !!fileData,
-            fileUrl,
-            fileName: fileData ? fileData.originalname : null,
-            parsedFileContent,
-            batchId
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
         return docRef.id;
