@@ -15,7 +15,8 @@ try {
   } else {
     adminApp = admin.initializeApp({
       credential: admin.credential.cert(serviceAccountPath),
-      databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
+      databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`,
+      storageBucket: process.env.STORAGE_BUCKET
     });
     console.log('Zenius: Firebase Admin SDK Initialized');
   }

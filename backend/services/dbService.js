@@ -1,4 +1,4 @@
-const { db, admin } = require('../config/firebase-admin');
+const { db, admin, bucket } = require('../config/firebase-admin');
 const LOAD_CALCULATION = require('../utils/loadCalculationConstants');
 const axios = require('axios');
 const pdf = require('pdf-parse');
@@ -60,12 +60,35 @@ const dbService = {
         }
     },
 
-    //Inputs
-    extractPdfText: async (url) => {
+    /**
+     * Uploads a raw file buffer to Firebase Storage
+     * @param {Buffer} fileBuffer - The file data
+     * @param {string} originalName - Original filename
+     * @returns {Promise<string>} The public URL of the uploaded file
+     */
+    uploadFile: async (fileBuffer, originalName) => {
         try {
-            const response = await axios.get(url, { responseType: 'arraybuffer' });
-            const buffer = Buffer.from(response.data, 'binary');
-            const data = await pdf(buffer);
+            const fileName = `inputs/${Date.now()}_${originalName}`;
+            const file = bucket.file(fileName);
+
+            // Upload the buffer
+            await file.save(fileBuffer, {
+                metadata: { contentType: 'auto' },
+                public: true // Make it readable for the UI
+            });
+
+            // Return the public URL
+            return `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        } catch (error) {
+            console.error("Storage upload failed:", error);
+            throw new Error("Failed to upload file to storage");
+        }
+    },
+
+    //Inputs
+    extractPdfText: async (fileBuffer) => {
+        try {
+            const data = await pdf(fileBuffer);
             return data.text;
         } catch (error) {
             console.error("PDF Extraction failed:", error);
@@ -73,39 +96,39 @@ const dbService = {
         }
     },
 
-    saveInput: async (source, content, metadata = {}, hasAttachments = false, fileUrl = null, fileName = null, subject = null) => {
-        try {
-            let parsedFileContent = null;
-            const batchId = subject ? `batch_${subject.replace(/\s+/g, '_')}_${metadata.sender || 'unknown'}` : null;
+    saveInput: async (source, content, metadata, fileData = null) => {
+        let fileUrl = null;
+        let parsedFileContent = null;
+        let batchId = metadata.subject ? `batch_${metadata.subject.replace(/\s+/g, '_')}` : null;
 
-            // Extract text if it's a PDF
-            if (hasAttachments && fileUrl && fileName && fileName.toLowerCase().endsWith('.pdf')) {
-                parsedFileContent = await dbService.extractPdfText(fileUrl);
+        if (fileData && fileData.buffer) {
+            // Step A: Extract text straight from memory (No network request)
+            if (fileData.originalname.toLowerCase().endsWith('.pdf')) {
+                parsedFileContent = await dbService.extractPdfText(fileData.buffer);
+            } else {
+                parsedFileContent = `[Attached file: ${fileData.originalname} (Image/Binary)]`;
             }
 
-            const inputData = {
-                source,
-                subject: subject || "No Subject",
-                content: content || "",
-                processed: false,
-                sentiment: {},
-                timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                metadata,
-                hasAttachments,
-                fileUrl,
-                fileName,
-                parsedFileContent,
-                batchId // Grouping multi-file emails
-            };
-
-            const docRef = await db.collection('inputs').add(inputData);
-            
-            await dbService.addLog("INPUT_RECEIVED", "Info", { source, batchId });
-            return docRef.id;
-        } catch (error) {
-            console.error("saveInput failed:", error);
-            throw error;
+            // Step B: Upload the file to Storage to get the URL
+            fileUrl = await dbService.uploadFile(fileData.buffer, fileData.originalname);
         }
+
+        // Step C: Save everything to Firestore
+        const docRef = await db.collection('inputs').add({
+            source,
+            subject: metadata.subject || "No Subject",
+            content: content || "",
+            processed: false,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            metadata,
+            hasAttachments: !!fileData,
+            fileUrl, 
+            fileName: fileData ? fileData.originalname : null,
+            parsedFileContent,
+            batchId
+        });
+
+        return docRef.id;
     },
 
     getInputs: async () => {
