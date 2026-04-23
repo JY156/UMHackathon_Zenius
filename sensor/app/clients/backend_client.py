@@ -32,7 +32,7 @@ async def forward_to_backend(event: IngestedEvent):
                 await r.rpush("zenius_retry_queue", json.dumps({
                     "event": jsonable_encoder(event),
                     "retry_reason": "backend_unavailable",
-                    "timestamp": event.timestamp.isoformat()
+                    "timestamp": event.timestamp.isoformat() if event.timestamp else None
                 }))
                 return {"status": "queued_retry", "reason": "backend_down"}
             
@@ -48,7 +48,8 @@ async def forward_to_backend(event: IngestedEvent):
             # Express server not reachable
             await r.rpush("zenius_retry_queue", json.dumps({
                 "event": jsonable_encoder(event),
-                "retry_reason": "connection_failed"
+                "retry_reason": "connection_failed",
+                "timestamp": event.timestamp.isoformat() if event.timestamp else None
             }))
             return {"status": "queued_retry", "reason": "no_connection"}
             
@@ -56,7 +57,8 @@ async def forward_to_backend(event: IngestedEvent):
             # Express took too long
             await r.rpush("zenius_retry_queue", json.dumps({
                 "event": jsonable_encoder(event),
-                "retry_reason": "timeout"
+                "retry_reason": "timeout",
+                "timestamp": event.timestamp.isoformat() if event.timestamp else None
             }))
             return {"status": "queued_retry", "reason": "timeout"}
             
