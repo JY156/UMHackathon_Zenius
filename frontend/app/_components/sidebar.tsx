@@ -5,9 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, type ComponentType } from "react";
 import { useRoleStore } from "../_store/role-store";
 import {
-  Bot,
-  Bell,
-  ChartColumn,
   GitBranchPlus,
   LayoutDashboard,
   LogOut,
@@ -15,7 +12,6 @@ import {
   Users,
   PanelLeftClose,
   PanelLeftOpen,
-  Library,
 } from "lucide-react";
 
 type NavItem = {
@@ -27,11 +23,8 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/resources", label: "Resources", icon: Library },
-  { href: "/task-adjustments", label: "Task Adjustments", icon: GitBranchPlus },
-  { href: "/analytics", label: "Analytics", icon: ChartColumn },
+  { href: "/task-adjustments", label: "Task Assignments", icon: GitBranchPlus },
   { href: "/team", label: "Team", icon: Users },
-  { href: "/ai-agent", label: "AI Agent", icon: Bot },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
