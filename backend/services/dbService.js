@@ -141,7 +141,7 @@ const dbService = {
         const snapshot = await db.collection('inputs')
             .where('processed', '==', false)
             .get();
-            
+
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
 
@@ -261,7 +261,7 @@ const dbService = {
         }
     },
 
-    addTask: async (taskData) => {
+     addTask: async (taskData) => {
         try {
             const docRef = await db.collection('tasks').add({
                 ...taskData,
@@ -273,7 +273,7 @@ const dbService = {
 
             const user = await dbService.getUserById(taskData.assignedTo);
             const newLoad = await dbService.calculateLoadForUser(taskData.assignedTo, user.sentiment_score);
-            
+
             await db.collection('users').doc(taskData.assignedTo).update({ current_load: newLoad });
             await dbService.saveLoadSnapshot(taskData.assignedTo, newLoad, user.sentiment_score, "TASK_ADDED");
 
@@ -335,9 +335,9 @@ const dbService = {
             const taskRef = db.collection('tasks').doc(tid);
             const taskDoc = await taskRef.get();
             if (!taskDoc.exists) return false;
-            
+
             const taskData = taskDoc.data();
-            
+
             await taskRef.update({
                 status: status,
                 completedAt: status === LOAD_CALCULATION.EXCLUDED_STATUS ? admin.firestore.FieldValue.serverTimestamp() : null
@@ -395,7 +395,7 @@ const dbService = {
 
     updateApprovalStatus: async (approvalId, newStatus, actorUid) => {
         const approvalRef = db.collection('approvals').doc(approvalId);
-        
+
         try {
             let shouldReassign = false;
             let approvalData = null;
