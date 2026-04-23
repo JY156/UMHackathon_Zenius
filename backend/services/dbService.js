@@ -1,21 +1,9 @@
 const { db, admin } = require('../config/firebase-admin');
 const LOAD_CALCULATION = require('../utils/loadCalculationConstants');
+const axios = require('axios');
+const pdf = require('pdf-parse');
 
 const dbService = {
-    testConnection: async () => {
-        try {
-            const testRef = db.collection('system_check').doc('status');
-            await testRef.set({
-                last_connection: new Date(),
-                message: "Zenius Backend is successfully linked to Firestore"
-            });
-            return true;
-        } catch (error) {
-            console.error("Database Connection Failed:", error);
-            return false;
-        }
-    },
-
     //Helpers
     addLog: async (type, severity, detail) => {
         await db.collection('logs').add({
@@ -24,6 +12,20 @@ const dbService = {
             severity,
             detail
         });
+    },
+
+    saveLoadSnapshot: async (userId, loadScore, sentiment, triggerType) => {
+        try {
+            await db.collection('user_stats').add({
+                userId,
+                load_score: loadScore,
+                sentiment,
+                trigger: triggerType,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+            console.error("Failed to save snapshot:", error);
+        }
     },
 
     /**
@@ -59,16 +61,51 @@ const dbService = {
     },
 
     //Inputs
-    saveInput: async (source, content, metadata = {}) => {
-        const docRef = await db.collection('inputs').add({
-            source,
-            content,
-            processed: false,
-            sentiment: {},
-            timestamp: new Date(),
-            metadata
-        });
-        return docRef.id;
+    extractPdfText: async (url) => {
+        try {
+            const response = await axios.get(url, { responseType: 'arraybuffer' });
+            const buffer = Buffer.from(response.data, 'binary');
+            const data = await pdf(buffer);
+            return data.text;
+        } catch (error) {
+            console.error("PDF Extraction failed:", error);
+            return "Error extracting PDF content";
+        }
+    },
+
+    saveInput: async (source, content, metadata = {}, hasAttachments = false, fileUrl = null, fileName = null, subject = null) => {
+        try {
+            let parsedFileContent = null;
+            const batchId = subject ? `batch_${subject.replace(/\s+/g, '_')}_${metadata.sender || 'unknown'}` : null;
+
+            // Extract text if it's a PDF
+            if (hasAttachments && fileUrl && fileName && fileName.toLowerCase().endsWith('.pdf')) {
+                parsedFileContent = await dbService.extractPdfText(fileUrl);
+            }
+
+            const inputData = {
+                source,
+                subject: subject || "No Subject",
+                content: content || "",
+                processed: false,
+                sentiment: {},
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                metadata,
+                hasAttachments,
+                fileUrl,
+                fileName,
+                parsedFileContent,
+                batchId // Grouping multi-file emails
+            };
+
+            const docRef = await db.collection('inputs').add(inputData);
+            
+            await dbService.addLog("INPUT_RECEIVED", "Info", { source, batchId });
+            return docRef.id;
+        } catch (error) {
+            console.error("saveInput failed:", error);
+            throw error;
+        }
     },
 
     getInputs: async () => {
@@ -124,20 +161,22 @@ const dbService = {
         }
     },
 
-    addTask: async (taskData) => {
+   addTask: async (taskData) => {
         try {
             const docRef = await db.collection('tasks').add({
                 ...taskData,
                 previousAssignee: [],
                 moveCount: 0,
-                status: taskData.status || 'todo'
+                status: taskData.status || 'todo',
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
 
-            const newLoad = await dbService.calculateLoadForUser(taskData.assignedTo);
-            await db.collection('users').doc(taskData.assignedTo).update({ current_load: newLoad });
-
-            await dbService.addLog("TASK_CREATED", "Info", { tid: docRef.id, assignedTo: taskData.assignedTo });
+            const user = await dbService.getUserById(taskData.assignedTo);
+            const newLoad = await dbService.calculateLoadForUser(taskData.assignedTo, user.sentiment_score);
             
+            await db.collection('users').doc(taskData.assignedTo).update({ current_load: newLoad });
+            await dbService.saveLoadSnapshot(taskData.assignedTo, newLoad, user.sentiment_score, "TASK_ADDED");
+
             return docRef.id;
         } catch (error) {
             console.error("addTask failed", error);
@@ -146,12 +185,9 @@ const dbService = {
     },
 
     reassignTask: async (tid, fromUid, toUid, reason) => {
-        const taskRef = db.collection('tasks').doc(tid);
-        const fromUserRef = db.collection('users').doc(fromUid);
-        const toUserRef = db.collection('users').doc(toUid);
-
         try {
             await db.runTransaction(async (transaction) => {
+                const taskRef = db.collection('tasks').doc(tid);
                 const taskDoc = await transaction.get(taskRef);
                 const prev = taskDoc.data().previousAssignee || [];
 
@@ -160,15 +196,18 @@ const dbService = {
                     previousAssignee: [...prev, fromUid],
                     moveCount: (taskDoc.data().moveCount || 0) + 1
                 });
-
-                await dbService.addLog("REASSIGNMENT_EXECUTED", "Warning", { tid, fromUid, toUid, reason });
             });
 
-            const fromLoad = await dbService.calculateLoadForUser(fromUid);
-            const toLoad = await dbService.calculateLoadForUser(toUid);
-            await fromUserRef.update({ current_load: fromLoad });
-            await toUserRef.update({ current_load: toLoad });
+            // Update loads and save snapshots for both users
+            const users = [fromUid, toUid];
+            for (const uid of users) {
+                const user = await dbService.getUserById(uid);
+                const newLoad = await dbService.calculateLoadForUser(uid, user.sentiment_score);
+                await db.collection('users').doc(uid).update({ current_load: newLoad });
+                await dbService.saveLoadSnapshot(uid, newLoad, user.sentiment_score, "REASSIGNMENT");
+            }
 
+            await dbService.addLog("REASSIGNMENT_EXECUTED", "Warning", { tid, fromUid, toUid, reason });
             return true;
         } catch (error) {
             console.error("reassignTask failed", error);
