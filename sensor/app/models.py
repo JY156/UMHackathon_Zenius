@@ -18,6 +18,7 @@ class IngestedEvent(BaseModel):
     content: str
     cleaned_text: str
     timestamp: datetime
+    subject: str
     
     attachments: List[Attachment] = Field(default_factory=list)
     

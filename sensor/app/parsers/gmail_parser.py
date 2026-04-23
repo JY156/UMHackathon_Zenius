@@ -59,11 +59,14 @@ def parse_gmail_message(service, message_raw: dict):
     payload = message_raw.get('payload', {})
     headers = payload.get('headers', [])
     message_id = message_raw.get('id')
+
+    def get_header_value(name):
+        return next((h['value'] for h in headers if h['name'].lower() == name.lower()), None)
     
-    sender = next((h['value'] for h in headers if h['name'] == 'From'), "Unknown")
-    subject = next((h['value'] for h in headers if h['name'] == 'Subject'), "No Subject")
+    sender = get_header_value('From') or "Unknown"
+    subject = get_header_value('Subject') or "No Subject"
     thread_id = message_raw.get('threadId')
-    
+
     parts = payload.get('parts', [])
     body = ""
     attachments = []

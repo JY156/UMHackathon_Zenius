@@ -79,7 +79,6 @@ async def check_gmail_periodically():
             import traceback
             print(f"🛑 CRITICAL ERROR in Sensor: {e}")
             traceback.print_exc()
-            # print(f"Gmail Polling Error: {e}")
 
         await asyncio.sleep(60)
 

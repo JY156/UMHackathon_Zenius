@@ -89,44 +89,49 @@ const dbService = {
         }
     },
 
-    saveInput: async (source, content, metadata, fileData = null) => {
+    saveInput: async (data) => {
+        const {
+            source,
+            subject,
+            content,
+            hasAttachments,
+            fileName,
+            parsedFileContent,
+            fileBuffer
+        } = data;
+
         let fileUrl = null;
-        let parsedFileContent = null;
-        let batchId = metadata.subject ? `batch_${metadata.subject.replace(/\s+/g, '_')}` : null;
 
-        // Inside saveInput, around the file upload section:
-        if (fileData && fileData.buffer) {
-            // Step A: Extract text
-            if (fileData.originalname.toLowerCase().endsWith('.pdf')) {
-                parsedFileContent = await dbService.extractPdfText(fileData.buffer);
-            } else {
-                parsedFileContent = `[Attached file: ${fileData.originalname}]`;
-            }
+        // Upload file if buffer exists
+        if (fileBuffer && fileName && bucket) {
+            try {
+                const storagePath = `inputs/${Date.now()}_${fileName}`;
+                const file = bucket.file(storagePath);
 
-            // Step B: Upload to Storage (may return null in mock mode)
-            fileUrl = await dbService.uploadFile(fileData.buffer, fileData.originalname);
-            
-            // ✅ Log but continue even if upload fails
-            if (fileUrl) {
-                console.log("✅ File uploaded:", fileUrl);
-            } else {
-                console.log("⚠️ File not uploaded (mock mode or error)");
+                await file.save(fileBuffer, {
+                    metadata: { contentType: 'application/pdf' },
+                    public: true
+                });
+
+                fileUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+                console.log(`✅ File uploaded: ${fileUrl}`);
+            } catch (uploadError) {
+                console.error("❌ Storage upload failed:", uploadError);
+                fileUrl = null;
             }
         }
 
-        // Step C: Save everything to Firestore
+        // ✅ Save to Firestore: CLEAN, NO METADATA
         const docRef = await db.collection('inputs').add({
             source,
-            subject: metadata.subject || "No Subject",
-            content: content || "",
+            subject,
+            content,
+            hasAttachments: !!hasAttachments,
+            fileName: fileName || null,
+            fileUrl: fileUrl || null,
+            parsedFileContent: parsedFileContent || null,
             processed: false,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            metadata,
-            hasAttachments: !!fileData,
-            fileUrl,
-            fileName: fileData ? fileData.originalname : null,
-            parsedFileContent,
-            batchId
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
 
         return docRef.id;

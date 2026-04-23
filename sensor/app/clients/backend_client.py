@@ -18,7 +18,6 @@ async def forward_to_backend(event: IngestedEvent):
         "source": event.source,
         "content": event.cleaned_text,
         "subject": getattr(event, 'subject', 'No Subject'),
-        "metadata": event.metadata,
         "attachments": [att.model_dump() for att in event.attachments]
     }
 
