@@ -1,69 +1,65 @@
-# Forwards validated data to Express
-
 import httpx
 import json
-from app.config import BACKEND_API_URL, BACKEND_API_KEY, REDIS_URL
-from app.models import IngestedEvent
 import redis.asyncio as redis
 from fastapi.encoders import jsonable_encoder
+from app.config import BACKEND_API_URL, BACKEND_API_KEY, REDIS_URL
+from app.models import IngestedEvent
+
+def get_safe_event_for_redis(event: IngestedEvent):
+    """Now completely safe: .data is a base64 string, not binary."""
+    return jsonable_encoder(event.model_dump())
 
 async def forward_to_backend(event: IngestedEvent):
     url = BACKEND_API_URL
-    headers = {
-        "Content-Type": "application/json",
-        "X-API-KEY": BACKEND_API_KEY  # Standard way to pass your secret key
-    }
-    # Lazy-init Redis connection (or init in config.py)
     r = redis.from_url(REDIS_URL)
-    
+
+    # ✅ Prepare JSON payload (attachments stay as base64 strings)
+    payload = {
+        "source": event.source,
+        "content": event.cleaned_text,
+        "subject": getattr(event, 'subject', 'No Subject'),
+        "attachments": [att.model_dump() for att in event.attachments]
+    }
+
+    headers = {
+        "Authorization": f"Bearer {BACKEND_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
     async with httpx.AsyncClient() as client:
         try:
-            payload = jsonable_encoder(event)
             resp = await client.post(
                 url,
-                json=payload,  # <--- Use the prepared payload
+                json=payload,  # ✅ Sends as application/json
                 headers=headers,
-                timeout=10  # Set a reasonable timeout for backend response
+                timeout=30.0   # Increased for base64 payload size
             )
-            
-            # Handle Express-specific errors
-            if resp.status_code == 503:
-                # Express is overloaded/down → queue for retry
+
+            if resp.status_code in [500, 502, 503, 504]:
+                print(f"⚠️ Server error {resp.status_code}. Queuing for retry...")
                 await r.rpush("zenius_retry_queue", json.dumps({
-                    "event": jsonable_encoder(event),
-                    "retry_reason": "backend_unavailable",
-                    "timestamp": event.timestamp.isoformat()
+                    "event": get_safe_event_for_redis(event),
+                    "reason": f"http_{resp.status_code}"
                 }))
-                return {"status": "queued_retry", "reason": "backend_down"}
-            
+                return {"status": "queued"}
+
+            if resp.status_code == 404:
+                print("❌ 404 Error: The Backend API URL is incorrect.")
+                return {"status": "error", "reason": "wrong_url"}
+
             if resp.status_code == 400:
-                # Bad request → log & skip (don't retry bad data)
-                # print(f"Validation error: {resp.text}")
-                return {"status": "dropped", "reason": "invalid_schema"}
-                
-            resp.raise_for_status()  # Only raise for unexpected errors
+                print(f"❌ 400 Error: Schema mismatch: {resp.text}")
+                return {"status": "error", "reason": "bad_request"}
+
+            resp.raise_for_status()
             return resp.json()
-            
-        except httpx.ConnectError:
-            # Express server not reachable
+
+        except (httpx.ConnectError, httpx.TimeoutException) as e:
+            print(f"📡 Network issue: {str(e)}. Queuing for retry...")
             await r.rpush("zenius_retry_queue", json.dumps({
-                "event": jsonable_encoder(event),
-                "retry_reason": "connection_failed"
+                "event": get_safe_event_for_redis(event),
+                "reason": "network_timeout"
             }))
-            return {"status": "queued_retry", "reason": "no_connection"}
-            
-        except httpx.TimeoutException:
-            # Express took too long
-            await r.rpush("zenius_retry_queue", json.dumps({
-                "event": jsonable_encoder(event),
-                "retry_reason": "timeout"
-            }))
-            return {"status": "queued_retry", "reason": "timeout"}
-            
-        except httpx.HTTPStatusError as e:
-            # Unexpected 4xx/5xx (not handled above)
-            # print(f"Backend error {e.response.status_code}: {e.response.text}")
-            return {"status": "error", "error": str(e)}
-            
+            return {"status": "queued"}
         finally:
-            await r.close()  # Clean up Redis connection
+            await r.close()

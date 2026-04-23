@@ -22,5 +22,8 @@
   "homepage": "https://github.com/JY156/UMHackathon_Zenius#readme",
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "multer": "^2.1.1"
   }
 }

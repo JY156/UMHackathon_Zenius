@@ -4,7 +4,8 @@ const dbService = require('../services/dbService');
 
 router.get('/', async (req, res) => {
     try {
-        const approvals = await dbService.getApprovals();
+        const { status } = req.query;
+        const approvals = await dbService.getApprovals(status);
         res.status(200).json(approvals);
     } catch (error) {
         res.status(500).json({error: error.message});
