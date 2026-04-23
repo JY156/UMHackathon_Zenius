@@ -1,20 +1,35 @@
 const express = require('express');
 const router = express.Router();
 const dbService = require('../services/dbService');
+const multer = require('multer');
 
-router.post('/', async (req, res) => {
+// Configure multer to hold the file in memory as a Buffer
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Add upload.single('file') as middleware
+router.post('/', upload.single('file'), async (req, res) => {
     try {
-        const { source, content, metadata } = req.body;
+        // Standard text fields come from req.body
+        const { source, subject, content } = req.body;
         
-        if (!source || !content) {
-            return res.status(400).json({ error: "Missing source or content text" });
+        // Form-data sends objects as strings, so we parse the metadata back into JSON
+        const metadata = req.body.metadata ? JSON.parse(req.body.metadata) : {};
+
+        // The raw file data comes from req.file
+        const fileData = req.file; 
+        const hasAttachments = !!fileData;
+
+        if (!source || (!content && !hasAttachments)) {
+            return res.status(400).json({ error: "Missing source or content text/file" });
         }
 
-        const docId = await dbService.saveInput(source, content, metadata);
+        // Pass the fileData object directly to your updated saveInput method
+        const docId = await dbService.saveInput(source, content, metadata, fileData);
+        
         res.status(201).json({ message: "Data received by Zenius", id: docId });
     } catch (error) {
         console.error(error);
-        res.status(500).json({error: error.message});
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -24,7 +39,7 @@ router.get('/', async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(error);
-       res.status(500).json({error: error.message});
+        res.status(500).json({ error: error.message });
     }
 });
 
