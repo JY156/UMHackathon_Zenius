@@ -38,15 +38,4 @@ app.use((err, req, res, next) => {
 // Start Server and Test Database
 app.listen(PORT, async () => {
   console.log(`🚀 Zenius Backend running on http://localhost:${PORT}`);
-  
-  try {
-    const isConnected = await dbService.testConnection();
-    if (isConnected) {
-      console.log('✅ Firestore connection: SUCCESS');
-    } else {
-      console.error('❌ Firestore connection: FAILED');
-    }
-  } catch (error) {
-    console.error('❌ Unexpected error during DB initialization:', error.message);
-  }
 });
