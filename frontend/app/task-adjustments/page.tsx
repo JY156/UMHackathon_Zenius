@@ -1,242 +1,208 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { AppShell } from "../_components/app-shell";
-import { useRoleStore } from "../_store/role-store";
-import { 
-  AlertCircle, 
-  CheckCircle2, 
-  XCircle, 
-  RefreshCcw, 
-  ChevronRight, 
-  History, 
-  Filter, 
-  Calendar,
-  Sparkles,
-  User,
-  Activity,
-  ArrowRight
-} from "lucide-react";
+import { ChevronDown, ChevronUp, FolderKanban, MailCheck, RefreshCw } from "lucide-react";
 
-const alerts = [
+type TaskStatus = "Not started" | "In Progress" | "Completed";
+
+type TaskItem = {
+  id: string;
+  title: string;
+  assignee: string;
+  workload: number;
+  status: TaskStatus;
+};
+
+type Project = {
+  id: string;
+  name: string;
+  tasks: TaskItem[];
+};
+
+const statusStyles: Record<TaskStatus, string> = {
+  "Not started": "bg-slate-100 text-slate-700",
+  "In Progress": "bg-amber-100 text-amber-800",
+  Completed: "bg-emerald-100 text-emerald-800",
+};
+
+const projectData: Project[] = [
   {
-    id: 1,
-    name: "Sarah Connor",
-    trigger: "Sick Leave",
-    type: "Absence",
-    affectedTasks: 5,
-    status: "Pending",
-    urgency: "urgent", // urgent, warning, stable
-    recommendation: "Assign sprint tickets to Lena + Marcus based on 92% skill match and capacity.",
+    id: "project-apollo",
+    name: "Apollo CRM Migration",
+    tasks: [
+      { id: "apollo-1", title: "Map legacy fields to CRM schema", assignee: "Lena Meyer", workload: 62, status: "In Progress" },
+      { id: "apollo-2", title: "Build import validation script", assignee: "Marcus Wright", workload: 48, status: "Not started" },
+      { id: "apollo-3", title: "Sign off migration readiness", assignee: "Sarah Connor", workload: 70, status: "Completed" },
+    ],
   },
   {
-    id: 2,
-    name: "Priya Singh",
-    trigger: "Overwhelmed",
-    type: "Overload",
-    affectedTasks: 3,
-    status: "Pending",
-    urgency: "warning",
-    recommendation: "Shift high-priority tickets to Wei; defer lower-priority maintenance tasks to next sprint.",
-  }
-];
-
-const history = [
-  {
-    id: 101,
-    timestamp: "10 mins ago",
-    status: "Synced to Jira",
-    before: { name: "Amir Khan", load: 95, blockers: "High" },
-    after: { name: "Lena Meyer", load: 65, blockers: "None" },
-    explanation: "Model prioritized delivery risk and shifted tasks to Lena who has 30% available capacity in current sprint.",
+    id: "project-orbit",
+    name: "Orbit Launch Readiness",
+    tasks: [
+      { id: "orbit-1", title: "Prepare partner onboarding checklist", assignee: "Priya Singh", workload: 54, status: "In Progress" },
+      { id: "orbit-2", title: "Review manager email action items", assignee: "Amir Khan", workload: 45, status: "Completed" },
+      { id: "orbit-3", title: "Resolve deployment blockers", assignee: "Jessica Day", workload: 63, status: "Not started" },
+    ],
   },
   {
-    id: 102,
-    timestamp: "1 hour ago",
-    status: "Synced to Jira",
-    before: { name: "Sarah Connor", load: 110, blockers: "Critical" },
-    after: { name: "Marcus Wright", load: 45, blockers: "Low" },
-    explanation: "Reassigned due to Sarah's emergency leave; Marcus identified as best fit due to overlap in project context.",
-  }
+    id: "project-nova",
+    name: "Nova Support Automation",
+    tasks: [
+      { id: "nova-1", title: "Tag incoming support email intents", assignee: "Wei Zhang", workload: 58, status: "In Progress" },
+      { id: "nova-2", title: "Auto-route urgent tickets", assignee: "Noah Patel", workload: 44, status: "Completed" },
+      { id: "nova-3", title: "Update escalation SLA matrix", assignee: "Emily Chen", workload: 52, status: "Not started" },
+    ],
+  },
 ];
 
-export default function TaskAdjustmentsPage() {
-  const { role } = useRoleStore();
-  const [mounted, setMounted] = useState(false);
-  const [filterType, setFilterType] = useState("All");
+export default function TaskAssignmentsPage() {
+  const [openProjects, setOpenProjects] = useState<Record<string, boolean>>({
+    "project-apollo": true,
+    "project-orbit": true,
+    "project-nova": true,
+  });
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [projects, setProjects] = useState(projectData);
 
-  if (!mounted) return null;
+  const totals = useMemo(() => {
+    const allTasks = projects.flatMap((project) => project.tasks);
+    const completed = allTasks.filter((task) => task.status === "Completed").length;
+
+    return {
+      tasks: allTasks.length,
+      completed,
+      completionRate: Math.round((completed / allTasks.length) * 100),
+    };
+  }, [projects]);
+
+  function toggleProject(projectId: string) {
+    const expanded = !openProjects[projectId];
+    setOpenProjects((prev) => ({ ...prev, [projectId]: expanded }));
+    toast.success(expanded ? "Project card expanded" : "Project card collapsed");
+  }
+
+  function autoAssignFromEmail(projectId: string) {
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.id !== projectId) return project;
+
+        const [firstTask, ...rest] = project.tasks;
+        if (!firstTask) return project;
+
+        const nextStatus: TaskStatus = firstTask.status === "Not started" ? "In Progress" : firstTask.status;
+        return {
+          ...project,
+          tasks: [{ ...firstTask, status: nextStatus }, ...rest],
+        };
+      }),
+    );
+
+    toast.success("Task auto-assigned from email");
+  }
+
+  function markProjectUpdated(projectName: string) {
+    toast.success(`${projectName} updated`);
+  }
 
   return (
     <AppShell>
-      <div className="space-y-10 pb-12 animate-in fade-in duration-500">
-        {/* 1. Page Header */}
-        <header className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Task Adjustments</h1>
-          <p className="text-muted-foreground font-medium">
-            {role === "manager" 
-              ? "Manage alerts and track reassignments" 
-              : "Review your task reassignment history"}
+      <div className="space-y-8 pb-10">
+        <header className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Task Assignments</h1>
+          <p className="text-sm font-medium text-muted-foreground">View tasks distributed by project</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-primary flex items-center gap-2">
+            <MailCheck className="h-4 w-4" />
+            Backend reads manager email and auto-detects tasks, workload, and skill-fit assignments.
           </p>
         </header>
 
-        {role === "manager" && (
-          /* 2. Pending Alerts Section */
-          <section className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-              <h2 className="text-xl font-bold text-sidebar flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-orange-500" />
-                Pending Alerts
-              </h2>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
-                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                  <select className="bg-transparent focus:outline-none">
-                    <option>Status: Pending</option>
-                    <option>Status: Resolved</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
-                  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                  <select className="bg-transparent focus:outline-none">
-                    <option>Type: All</option>
-                    <option>Type: Absence</option>
-                    <option>Type: Overload</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-white text-xs font-medium">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-muted-foreground">Past 7 Days</span>
-                </div>
-              </div>
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Tasks Assigned</p>
+              <p className="mt-2 text-2xl font-bold text-foreground">{totals.tasks}</p>
             </div>
+            <div id="workload-projects" className="rounded-xl border border-border bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Workload Distribution</p>
+              <p className="mt-2 text-2xl font-bold text-foreground">Balanced by project</p>
+            </div>
+            <div id="completion-projects" className="rounded-xl border border-border bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Completion Rate</p>
+              <p className="mt-2 text-2xl font-bold text-foreground">{totals.completionRate}%</p>
+            </div>
+          </div>
+        </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {alerts.map((alert) => (
-                <div key={alert.id} className="group relative rounded-2xl border border-border bg-white p-6 shadow-sm transition-all hover:shadow-md">
-                  <div className={`absolute top-0 left-0 w-1.5 h-full rounded-l-2xl ${alert.urgency === 'urgent' ? 'bg-red-500' : 'bg-orange-500'}`} />
-                  
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                        <User className="h-6 w-6 text-sidebar-primary" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-sidebar">{alert.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <span className={`w-2 h-2 rounded-full ${alert.type === 'Absence' ? 'bg-blue-500' : 'bg-purple-500'}`} />
-                          {alert.trigger} ({alert.type})
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-sidebar">{alert.affectedTasks}</p>
-                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Tasks Affected</p>
-                    </div>
-                  </div>
+        <section className="space-y-5">
+          {projects.map((project) => {
+            const isOpen = openProjects[project.id];
 
-                  <div className="mb-6 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 relative">
-                    <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold mb-2">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      ZENIUS AI RECOMMENDATION
-                    </div>
-                    <p className="text-sm text-emerald-800 leading-relaxed font-medium">
-                      {alert.recommendation}
-                    </p>
-                  </div>
-
+            return (
+              <article
+                key={project.id}
+                id={project.id}
+                className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
-                    <button className="flex-1 bg-sidebar-primary text-white rounded-lg px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Approve
+                    <div className="rounded-lg bg-primary/10 p-2 text-primary">
+                      <FolderKanban className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground">{project.name}</h2>
+                      <p className="text-xs text-muted-foreground">{project.tasks.length} tasks assigned</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => autoAssignFromEmail(project.id)}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-foreground shadow-sm hover:bg-slate-50"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Auto-assign
                     </button>
-                    <button className="flex items-center justify-center w-11 h-11 rounded-lg border border-border text-muted-foreground hover:bg-gray-50 transition-colors">
-                      <RefreshCcw className="h-4 w-4" />
+                    <button
+                      onClick={() => markProjectUpdated(project.name)}
+                      className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-foreground shadow-sm hover:bg-slate-50"
+                    >
+                      Update project
                     </button>
-                    <button className="flex items-center justify-center w-11 h-11 rounded-lg border border-border text-red-500 hover:bg-red-50 hover:border-red-100 transition-colors">
-                      <XCircle className="h-4 w-4" />
+                    <button
+                      onClick={() => toggleProject(project.id)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-foreground shadow-sm hover:bg-slate-50"
+                      aria-expanded={isOpen}
+                      aria-controls={`${project.id}-content`}
+                    >
+                      {isOpen ? "Collapse" : "Expand"}
+                      {isOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
 
-        {/* 3. Reassignment History Section */}
-        <section className="space-y-6 pt-6">
-          <div className="flex items-center justify-between border-b border-border pb-4">
-            <h2 className="text-xl font-bold text-sidebar flex items-center gap-2">
-              <History className="h-5 w-5 text-blue-500" />
-              Reassignment History
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {history.map((item) => (
-              <div key={item.id} className="group relative overflow-hidden rounded-2xl border border-border bg-white p-6 shadow-sm hover:shadow-md transition-all">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                  {/* Before */}
-                  <div className="space-y-3">
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Before</p>
-                    <div className="space-y-1">
-                      <p className="font-bold text-sidebar">{item.before.name}</p>
-                      <div className="flex items-center gap-2">
-                         <div className="flex-1 bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                           <div className="bg-red-500 h-full" style={{ width: '100%' }} />
-                         </div>
-                         <span className="text-xs font-bold text-red-500">{item.before.load}%</span>
+                {isOpen ? (
+                  <div id={`${project.id}-content`} className="mt-4 space-y-3">
+                    {project.tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="grid grid-cols-1 gap-3 rounded-xl border border-border bg-white p-4 shadow-sm md:grid-cols-[2fr_1fr_1fr] md:items-center"
+                      >
+                        <p className="text-sm font-semibold text-foreground">{task.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {task.assignee} <span className="font-semibold text-foreground">{task.workload}%</span>
+                        </p>
+                        <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[task.status]}`}>
+                          {task.status}
+                        </span>
                       </div>
-                      <p className="text-[10px] text-muted-foreground italic">Blockers: {item.before.blockers}</p>
-                    </div>
+                    ))}
                   </div>
-
-                  {/* Arrow */}
-                  <div className="hidden lg:flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
-                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </div>
-
-                  {/* After */}
-                  <div className="space-y-3">
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">After</p>
-                    <div className="space-y-1">
-                      <p className="font-bold text-sidebar uppercase">{item.after.name}</p>
-                      <div className="flex items-center gap-2">
-                         <div className="flex-1 bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                           <div className="bg-green-500 h-full" style={{ width: `${item.after.load}%` }} />
-                         </div>
-                         <span className="text-xs font-bold text-green-500">{item.after.load}%</span>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground italic">Blockers: {item.after.blockers}</p>
-                    </div>
-                  </div>
-
-                  {/* AI Explanation */}
-                  <div className="lg:border-l border-dashed border-border lg:pl-8 space-y-3">
-                    <p className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      AI Insight
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed italic">
-                      "{item.explanation}"
-                    </p>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-[10px] font-bold text-emerald-700 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100">
-                        {item.status}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">{item.timestamp}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                ) : null}
+              </article>
+            );
+          })}
         </section>
       </div>
     </AppShell>
