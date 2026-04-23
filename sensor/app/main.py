@@ -34,7 +34,7 @@ async def check_gmail_periodically():
 
                 # 2. Get and Parse
                 full_msg = service.users().messages().get(userId='me', id=msg['id']).execute()
-                parsed = parse_gmail_message(full_msg)
+                parsed = parse_gmail_message(service, full_msg)
                 
                 # Trash Filter
                 blacklist = ["linkedin", "dominos", "shopee", "facebook", "canva", "newsletter"]
@@ -44,16 +44,18 @@ async def check_gmail_periodically():
                     ).execute()
                     continue
 
-                # 3. Create the IngestedEvent (Matching your models.py)
+                # 3. Create the IngestedEvent
                 event_data = IngestedEvent(
                     event_id=msg['id'],
                     source="gmail",
                     user_id=parsed["user_id"],
+                    subject=parsed.get("subject", "No Subject"),
                     channel_or_thread=parsed.get("thread_id"),
                     content=parsed.get("raw_body", ""),
                     cleaned_text=parsed.get("cleaned_body", ""),
                     timestamp=datetime.fromtimestamp(int(parsed.get("timestamp", 0))/1000),
-                    attachments=parsed.get("attachments", [])
+                    # ✅ Pydantic automatically converts List[dict] → List[Attachment]
+                    attachments=parsed.get("attachments", []) 
                 )
                 
                 # 4. Forward to Backend (FIXED VARIABLE NAME)
@@ -74,7 +76,10 @@ async def check_gmail_periodically():
                     ).execute()
 
         except Exception as e:
-            print(f"Gmail Polling Error: {e}")
+            import traceback
+            print(f"🛑 CRITICAL ERROR in Sensor: {e}")
+            traceback.print_exc()
+            # print(f"Gmail Polling Error: {e}")
 
         await asyncio.sleep(60)
 
