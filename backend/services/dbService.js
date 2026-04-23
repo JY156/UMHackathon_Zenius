@@ -145,6 +145,20 @@ const dbService = {
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
 
+    updateInputProcessed: async (id, category) => {
+        try {
+            await db.collection('inputs').doc(id).update({
+                processed: true,
+                category: category || null,
+                processedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            return true;
+        } catch (error) {
+            console.error("updateInputProcessed failed", error);
+            return false;
+        }
+    },
+
     //Users
     getUsers: async () => {
         try {
@@ -173,6 +187,63 @@ const dbService = {
         } catch (error) {
             console.error("getUserById failed", error);
             return null;
+        }
+    },
+
+    getTeamState: async () => {
+        try {
+            const usersSnapshot = await db.collection('users').get();
+            const userPromises = usersSnapshot.docs.map(async (doc) => {
+                const userData = doc.data();
+                const currentLoad = await dbService.calculateLoadForUser(doc.id, userData.sentiment_score);
+                return {
+                    uid: doc.id,
+                    skills: userData.skills || [],
+                    task_capacity: userData.task_capacity || 0,
+                    current_load: currentLoad
+                };
+            });
+            return await Promise.all(userPromises);
+        } catch (error) {
+            console.error("getTeamState failed", error);
+            return [];
+        }
+    },
+
+    getUserHistory: async (uid) => {
+        try {
+            const snapshot = await db.collection('user_stats')
+                .where('userId', '==', uid)
+                .orderBy('timestamp', 'asc')
+                .get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error("getUserHistory failed", error);
+            return [];
+        }
+    },
+
+    updateUser: async (uid, updateData) => {
+        try {
+            const userRef = db.collection('users').doc(uid);
+            await userRef.update({
+                ...updateData,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Recalculate load if sentiment_score changed
+            if (updateData.sentiment_score !== undefined) {
+                const userDoc = await userRef.get();
+                const userData = userDoc.data();
+                const newLoad = await dbService.calculateLoadForUser(uid, userData.sentiment_score);
+                await userRef.update({ current_load: newLoad });
+                await dbService.saveLoadSnapshot(uid, newLoad, userData.sentiment_score, "USER_UPDATED");
+            }
+
+            return true;
+        } catch (error) {
+            console.error("updateUser failed", error);
+            return false;
         }
     },
 
@@ -244,13 +315,64 @@ const dbService = {
         }
     },
 
+    getTasksByUser: async (uid) => {
+        try {
+            const tasksSnapshot = await db.collection('tasks')
+                .where('assignedTo', '==', uid)
+                .get();
+            return tasksSnapshot.docs.map(doc => ({
+                tid: doc.id,
+                ...doc.data()
+            }));
+        } catch (error) {
+            console.error("getTasksByUser failed", error);
+            return [];
+        }
+    },
+
+    updateTaskStatus: async (tid, status) => {
+        try {
+            const taskRef = db.collection('tasks').doc(tid);
+            const taskDoc = await taskRef.get();
+            if (!taskDoc.exists) return false;
+            
+            const taskData = taskDoc.data();
+            
+            await taskRef.update({
+                status: status,
+                completedAt: status === LOAD_CALCULATION.EXCLUDED_STATUS ? admin.firestore.FieldValue.serverTimestamp() : null
+            });
+
+            // Update user load
+            const uid = taskData.assignedTo;
+            if (uid) {
+                const user = await dbService.getUserById(uid);
+                if (user) {
+                    const newLoad = await dbService.calculateLoadForUser(uid, user.sentiment_score);
+                    await db.collection('users').doc(uid).update({ current_load: newLoad });
+                    await dbService.saveLoadSnapshot(uid, newLoad, user.sentiment_score, "TASK_STATUS_CHANGED");
+                }
+            }
+
+            await dbService.addLog("TASK_STATUS_UPDATED", "Info", { tid, status, assignedTo: uid });
+            return true;
+        } catch (error) {
+            console.error("updateTaskStatus failed", error);
+            return false;
+        }
+    },
+
     //Approvals
-    getApprovals: async () => {
+    getApprovals: async (status = null) => {
         try {
             const snapshot = await db.collection('approvals')
                 .orderBy('createdAt', 'desc')
                 .get();
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (status) {
+                results = results.filter(a => a.status === status);
+            }
+            return results;
         } catch (error) {
             console.error("getApprovals failed", error);
             return [];

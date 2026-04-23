@@ -58,5 +58,19 @@ router.post('/', async (req, res) => {
         });
     }
 });
+router.patch('/:id/processed', async (req, res) => {
+    try {
+        const { category } = req.body;
+        const success = await dbService.updateInputProcessed(req.params.id, category);
+        if (success) {
+            res.status(200).json({ success: true, message: "Input marked as processed" });
+        } else {
+            res.status(400).json({ success: false, message: "Failed to mark input as processed" });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 module.exports = router;
