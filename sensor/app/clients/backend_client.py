@@ -18,7 +18,10 @@ async def forward_to_backend(event: IngestedEvent):
         "source": event.source,
         "content": event.cleaned_text,
         "subject": getattr(event, 'subject', 'No Subject'),
-        "attachments": [att.model_dump() for att in event.attachments]
+        "attachments": [att.model_dump() for att in event.attachments],
+        "thread_id": getattr(event, 'channel_or_thread', None),
+        "user_id": getattr(event, 'user_id', None),
+        "timestamp": event.timestamp.isoformat() if getattr(event, 'timestamp', None) else None
     }
 
     headers = {

@@ -7,6 +7,9 @@ const inputService = {
             source,
             subject,
             content,
+            threadId,
+            sender,
+            emailTimestamp,
             hasAttachments,
             fileName,
             parsedFileContent,
@@ -31,12 +34,15 @@ const inputService = {
             source,
             subject,
             content,
+            threadId: threadId || null,
+            sender: sender || null,
+            emailTimestamp: emailTimestamp || null, // The time the email was actually sent
             hasAttachments: !!hasAttachments,
             fileName: fileName || null,
             fileUrl: fileUrl || null,
             parsedFileContent: parsedFileContent || null,
             processed: false,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
+            timestamp: admin.firestore.FieldValue.serverTimestamp() // The time it hit your database
         });
 
         return docRef.id;

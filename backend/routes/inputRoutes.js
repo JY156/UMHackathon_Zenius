@@ -4,7 +4,15 @@ const dbService = require('../services/dbService');
 
 router.post('/', async (req, res) => {
     try {
-        const { source, content, subject, attachments } = req.body;
+        const { 
+            source, 
+            content, 
+            subject, 
+            attachments,
+            thread_id,
+            user_id,
+            timestamp
+        } = req.body;
 
         // ✅ Accept if we have content OR attachments (not both required)
         if (!content?.trim() && (!attachments || attachments.length === 0)) {
@@ -38,6 +46,9 @@ router.post('/', async (req, res) => {
             source: source || 'unknown',
             subject: subject || 'No Subject',
             content: content || '',
+            threadId: thread_id || null,
+            sender: user_id || 'unknown',
+            emailTimestamp: timestamp || null,
             hasAttachments: attachments?.length > 0,
             fileName: fileName || null,
             parsedFileContent: parsedFileContent || null,
