@@ -1,3 +1,25 @@
+const API_BASE_URL = 'http://localhost:5000/api';
+
+export function parseDate(val: unknown): Date | null {
+  if (!val) return null;
+  // @ts-expect-error Firebase timestamp handling
+  if (typeof val === 'object' && val._seconds) return new Date(val._seconds * 1000);
+  const d = new Date(val as string | number | Date);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function formatDate(val: unknown): string {
+  const d = parseDate(val);
+  if (!d) return 'N/A';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export function formatTime(val: unknown): string {
+  const d = parseDate(val);
+  if (!d) return 'N/A';
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
 export interface InputMessage {
   id: string;
   source: string;
@@ -10,20 +32,24 @@ export interface InputMessage {
 
 export interface Approval {
   id: string;
-  task_id: string;
-  suggested_assignee: string;
+  suggestedTid: string;
+  fromUid: string;
+  toUid: string;
   reasoning: string;
   status: string;
-  timestamp: string;
+  createdAt: string;
 }
 
 export interface Task {
   id: string;
+  projectId?: string;
   title: string;
   description: string;
   status: string;
-  assigned_to: string;
+  assignedTo: string;
   workload_score: number;
+  deadline?: string;
+  lastStatusUpdate?: string;
 }
 
 export interface User {
@@ -49,17 +75,17 @@ export interface Log {
 
 export const api = {
   getInputs: async (): Promise<InputMessage[]> => {
-    const res = await fetch('/api/inputs');
+    const res = await fetch(`${API_BASE_URL}/inputs`);
     if (!res.ok) throw new Error('Failed to fetch inputs');
     return res.json();
   },
   getPendingApprovals: async (): Promise<Approval[]> => {
-    const res = await fetch('/api/approvals?status=pending');
+    const res = await fetch(`${API_BASE_URL}/approvals?status=pending`);
     if (!res.ok) throw new Error('Failed to fetch approvals');
     return res.json();
   },
   updateApproval: async (id: string, status: 'approved' | 'rejected') => {
-    const res = await fetch(`/api/approvals/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/approvals/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
@@ -68,27 +94,35 @@ export const api = {
     return res.json();
   },
   getLogs: async (): Promise<Log[]> => {
-    const res = await fetch('/api/logs');
+    const res = await fetch(`${API_BASE_URL}/logs`);
     if (!res.ok) throw new Error('Failed to fetch logs');
     return res.json();
   },
   getUsers: async (): Promise<User[]> => {
-    const res = await fetch('/api/users');
+    const res = await fetch(`${API_BASE_URL}/users`);
     if (!res.ok) throw new Error('Failed to fetch users');
-    return res.json();
+    const data = await res.json();
+    return data.map((u: any) => ({ ...u, id: u.uid || u.id }));
+  },
+  getTasks: async (): Promise<Task[]> => {
+    const res = await fetch(`${API_BASE_URL}/tasks`);
+    if (!res.ok) throw new Error('Failed to fetch all tasks');
+    const data = await res.json();
+    return data.map((t: any) => ({ ...t, id: t.tid || t.id }));
   },
   getUserHistory: async (uid: string): Promise<HistoryData[]> => {
-    const res = await fetch(`/api/users/${uid}/history`);
+    const res = await fetch(`${API_BASE_URL}/users/${uid}/history`);
     if (!res.ok) throw new Error('Failed to fetch history');
     return res.json();
   },
   getUserTasks: async (uid: string): Promise<Task[]> => {
-    const res = await fetch(`/api/tasks/user/${uid}`);
+    const res = await fetch(`${API_BASE_URL}/tasks/user/${uid}`);
     if (!res.ok) throw new Error('Failed to fetch user tasks');
-    return res.json();
+    const data = await res.json();
+    return data.map((t: any) => ({ ...t, id: t.tid || t.id }));
   },
   updateTaskStatus: async (tid: string, status: string) => {
-    const res = await fetch(`/api/tasks/${tid}/status`, {
+    const res = await fetch(`${API_BASE_URL}/tasks/${tid}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })

@@ -51,6 +51,8 @@ const inputService = {
     getInputs: async () => {
         const snapshot = await db.collection('inputs')
             .where('processed', '==', false)
+            .orderBy('timestamp', 'desc')
+            .limit(20)
             .get();
 
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

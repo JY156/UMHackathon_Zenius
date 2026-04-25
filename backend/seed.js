@@ -8,26 +8,26 @@ const seedZenius = async () => {
 
     // 1. Mock Users
     const users = [
-        { uid: "user_nc", data: { name: "NC", role: "engineer", email: "nc@zenius.ai", skills: ["Firebase", "System Design"], task_capacity: 30, current_load: 28, status: "overwhelmed", sentiment_score: 0.3, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_xw", data: { name: "XWei", role: "engineer", email: "xw@zenius.ai", skills: ["LLM Prompting", "Logic"], task_capacity: 25, current_load: 12, status: "active", sentiment_score: 0.9, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_sy", data: { name: "SY", role: "engineer", email: "sy@zenius.ai", skills: ["Python", "APIs"], task_capacity: 25, current_load: 10, status: "active", sentiment_score: 0.8, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_jyuen", data: { name: "Jing Yuen", role: "manager", email: "jy@zenius.ai", skills: ["React", "UI/UX", "Management"], task_capacity: 20, current_load: 8, status: "active", sentiment_score: 0.85, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_jying", data: { name: "JYing", role: "engineer", email: "jying@zenius.ai", skills: ["Jira API", "Integration"], task_capacity: 20, current_load: 5, status: "active", sentiment_score: 0.95, timezone: "Asia/Kuala_Lumpur" } }
+        { uid: "user_nc", data: { name: "NC", email: "nc@zenius.ai", skills: ["Firebase", "System Design"], task_capacity: 30, current_load: 28, status: "overwhelmed", sentiment_score: 0.3, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_xw", data: { name: "XWei", email: "xw@zenius.ai", skills: ["LLM Prompting", "Logic"], task_capacity: 25, current_load: 12, status: "active", sentiment_score: 0.9, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_sy", data: { name: "SY", email: "sy@zenius.ai", skills: ["Python", "APIs"], task_capacity: 25, current_load: 10, status: "active", sentiment_score: 0.8, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_jyuen", data: { name: "Jing Yuen", email: "jy@zenius.ai", skills: ["React", "UI/UX", "Management"], task_capacity: 20, current_load: 8, status: "active", sentiment_score: 0.85, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_jying", data: { name: "JYing", email: "jying@zenius.ai", skills: ["Jira API", "Integration"], task_capacity: 20, current_load: 5, status: "active", sentiment_score: 0.95, timezone: "Asia/Kuala_Lumpur" } }
     ];
     users.forEach(u => batch.set(db.collection('users').doc(u.uid), u.data));
 
     // 2. Mock Tasks (Expanded to 10)
     const tasks = [
-        { tid: "task_001", data: { title: "Firestore Schema Fix", projectId: "proj_backend", assignedTo: "user_nc", previousAssignee: [], moveCount: 0, priority: 5, status: "in-progress", estimatedEffort: 10, createdAt: new Date(now - oneDay * 2), completedAt: null } },
-        { tid: "task_002", data: { title: "API Documentation", projectId: "proj_backend", assignedTo: "user_nc", previousAssignee: [], moveCount: 0, priority: 2, status: "todo", estimatedEffort: 5, createdAt: new Date(now - oneDay), completedAt: null } },
-        { tid: "task_003", data: { title: "Prompt Engineering", projectId: "proj_ai", assignedTo: "user_xw", previousAssignee: [], moveCount: 0, priority: 4, status: "in-progress", estimatedEffort: 5, createdAt: new Date(now - oneDay * 2), completedAt: null } },
-        { tid: "task_004", data: { title: "Slack Webhook Setup", projectId: "proj_core", assignedTo: "user_sy", previousAssignee: ["user_nc"], moveCount: 1, priority: 3, status: "done", estimatedEffort: 3, createdAt: new Date(now - oneDay * 3), completedAt: new Date(now - oneDay) } },
-        { tid: "task_005", data: { title: "Manager Dashboard UI", projectId: "proj_frontend", assignedTo: "user_jyuen", previousAssignee: [], moveCount: 0, priority: 5, status: "in-progress", estimatedEffort: 8, createdAt: new Date(now - oneDay), completedAt: null } },
-        { tid: "task_006", data: { title: "Jira OAuth Bridge", projectId: "proj_core", assignedTo: "user_jying", previousAssignee: [], moveCount: 0, priority: 5, status: "in-progress", estimatedEffort: 6, createdAt: new Date(now - oneDay * 2), completedAt: null } },
-        { tid: "task_007", data: { title: "Agent Reasoning Logic", projectId: "proj_ai", assignedTo: "user_xw", previousAssignee: [], moveCount: 0, priority: 4, status: "todo", estimatedEffort: 7, createdAt: new Date(), completedAt: null } },
-        { tid: "task_008", data: { title: "Python File Parser", projectId: "proj_backend", assignedTo: "user_sy", previousAssignee: [], moveCount: 0, priority: 3, status: "todo", estimatedEffort: 4, createdAt: new Date(), completedAt: null } },
-        { tid: "task_009", data: { title: "Approval State Buttons", projectId: "proj_frontend", assignedTo: "user_jyuen", previousAssignee: [], moveCount: 0, priority: 3, status: "todo", estimatedEffort: 3, createdAt: new Date(), completedAt: null } },
-        { tid: "task_010", data: { title: "Database Deployment", projectId: "proj_backend", assignedTo: "user_nc", previousAssignee: [], moveCount: 0, priority: 4, status: "todo", estimatedEffort: 5, createdAt: new Date(), completedAt: null } }
+        { tid: "task_001", data: { title: "Firestore Schema Fix", projectId: "proj_backend", assignedTo: "user_nc", previousAssignee: [], moveCount: 0, priority: 5, status: "in-progress", estimatedEffort: 10, createdAt: new Date(now - oneDay * 2), completedAt: null, deadline: new Date(now + oneDay), lastStatusUpdate: new Date(now - oneDay * 2) } },
+        { tid: "task_002", data: { title: "API Documentation", projectId: "proj_backend", assignedTo: "user_nc", previousAssignee: [], moveCount: 0, priority: 2, status: "todo", estimatedEffort: 5, createdAt: new Date(now - oneDay), completedAt: null, deadline: new Date(now + oneDay * 3), lastStatusUpdate: new Date(now - oneDay) } },
+        { tid: "task_003", data: { title: "Prompt Engineering", projectId: "proj_ai", assignedTo: "user_xw", previousAssignee: [], moveCount: 0, priority: 4, status: "in-progress", estimatedEffort: 5, createdAt: new Date(now - oneDay * 4), completedAt: null, deadline: new Date(now + oneDay * 2), lastStatusUpdate: new Date(now - oneDay * 3) } }, // Stalled (in-progress for 3 days)
+        { tid: "task_004", data: { title: "Slack Webhook Setup", projectId: "proj_core", assignedTo: "user_sy", previousAssignee: ["user_nc"], moveCount: 1, priority: 3, status: "done", estimatedEffort: 3, createdAt: new Date(now - oneDay * 3), completedAt: new Date(now - oneDay), deadline: new Date(now + oneDay * 2), lastStatusUpdate: new Date(now - oneDay) } },
+        { tid: "task_005", data: { title: "Manager Dashboard UI", projectId: "proj_frontend", assignedTo: "user_jyuen", previousAssignee: [], moveCount: 0, priority: 5, status: "in-progress", estimatedEffort: 8, createdAt: new Date(now - oneDay), completedAt: null, deadline: new Date(now + oneDay * 4), lastStatusUpdate: new Date(now - oneDay) } },
+        { tid: "task_006", data: { title: "Jira OAuth Bridge", projectId: "proj_core", assignedTo: "user_jying", previousAssignee: [], moveCount: 0, priority: 5, status: "in-progress", estimatedEffort: 6, createdAt: new Date(now - oneDay * 5), completedAt: null, deadline: new Date(now + oneDay), lastStatusUpdate: new Date(now - oneDay * 4) } }, // Stalled (in-progress for 4 days)
+        { tid: "task_007", data: { title: "Agent Reasoning Logic", projectId: "proj_ai", assignedTo: "user_xw", previousAssignee: [], moveCount: 0, priority: 4, status: "todo", estimatedEffort: 7, createdAt: new Date(), completedAt: null, deadline: new Date(now + oneDay * 5), lastStatusUpdate: new Date() } },
+        { tid: "task_008", data: { title: "Python File Parser", projectId: "proj_backend", assignedTo: "user_sy", previousAssignee: [], moveCount: 0, priority: 3, status: "todo", estimatedEffort: 4, createdAt: new Date(), completedAt: null, deadline: new Date(now + oneDay * 2), lastStatusUpdate: new Date() } },
+        { tid: "task_009", data: { title: "Approval State Buttons", projectId: "proj_frontend", assignedTo: "user_jyuen", previousAssignee: [], moveCount: 0, priority: 3, status: "todo", estimatedEffort: 3, createdAt: new Date(), completedAt: null, deadline: new Date(now + oneDay * 3), lastStatusUpdate: new Date() } },
+        { tid: "task_010", data: { title: "Database Deployment", projectId: "proj_backend", assignedTo: "user_nc", previousAssignee: [], moveCount: 0, priority: 4, status: "todo", estimatedEffort: 5, createdAt: new Date(), completedAt: null, deadline: new Date(now + oneDay * 4), lastStatusUpdate: new Date() } }
     ];
     tasks.forEach(t => batch.set(db.collection('tasks').doc(t.tid), t.data));
 
@@ -46,7 +46,7 @@ const seedZenius = async () => {
     ];
     approvals.forEach(a => batch.set(db.collection('approvals').doc(a.id), a.data));
 
-    // 5. Inputs (All Emails, Matching Your Schema)
+    // 5. Inputs
     const inputs = [
         { 
             id: "in_001", 
@@ -99,9 +99,19 @@ const seedZenius = async () => {
     ];
     inputs.forEach(i => batch.set(db.collection('inputs').doc(i.id), i.data));
 
+    // 6. System Logs (including Stalled Task detection)
+    const logs = [
+        { id: "log_001", data: { event: "REASSIGNMENT_EXECUTED", level: "Warning", details: "Task Slack Webhook Setup reassigned from NC to SY due to load balancing.", timestamp: new Date(now - oneDay * 3) } },
+        { id: "log_002", data: { event: "TASK_STATUS_UPDATED", level: "Info", details: "Task Slack Webhook Setup marked as done by SY.", timestamp: new Date(now - oneDay) } },
+        { id: "log_003", data: { event: "STALLED_TASK_DETECTED", level: "Warning", details: "Task Prompt Engineering is in-progress but hasn't had an update in 3 days. Assigned to XWei.", timestamp: new Date(now - 3600000) } },
+        { id: "log_004", data: { event: "STALLED_TASK_DETECTED", level: "Warning", details: "Task Jira OAuth Bridge is in-progress but hasn't had an update in 4 days. Assigned to JYing.", timestamp: new Date(now - 1800000) } },
+        { id: "log_005", data: { event: "WORKLOAD_ALERT", level: "Error", details: "User NC has exceeded recommended task capacity (28/30) and sentiment is overwhelmed.", timestamp: new Date() } }
+    ];
+    logs.forEach(l => batch.set(db.collection('logs').doc(l.id), l.data));
+
     try {
         await batch.commit();
-        console.log("✅ Zenius database seeded successfully with 10 tasks and formatted emails.");
+        console.log("✅ Zenius database seeded successfully with 10 tasks, formatted emails, and system logs.");
         process.exit(0);
     } catch (error) {
         console.error("❌ Seed failed:", error);
