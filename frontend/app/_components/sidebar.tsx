@@ -12,6 +12,7 @@ import {
   Users,
   PanelLeftClose,
   PanelLeftOpen,
+  ShieldAlert,
 } from "lucide-react";
 
 type NavItem = {
@@ -25,7 +26,7 @@ const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/task-adjustments", label: "Task Assignments", icon: GitBranchPlus },
   { href: "/team", label: "Team", icon: Users },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/approvals", label: "Approvals", icon: ShieldAlert },
 ];
 
 const teamSubItems = ["Engineering", "Product & Design", "Operations"];

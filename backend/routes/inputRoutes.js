@@ -69,6 +69,17 @@ router.post('/', async (req, res) => {
         });
     }
 });
+
+router.get('/', async (req, res) => {
+    try {
+        const data = await dbService.getInputs();
+        res.json(data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.patch('/:id/processed', async (req, res) => {
     try {
         const { category } = req.body;
