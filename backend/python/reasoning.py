@@ -1,7 +1,7 @@
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
-from utils.load_calculation import (
+from backend.python.load_calculation import (
     BURNOUT_RISK_THRESHOLD,
     is_burnout_risk,
     calculate_total_load
