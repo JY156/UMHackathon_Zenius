@@ -2,6 +2,7 @@
 const { db } = require('../config/firebase-admin');
 const aiProvider = require('./aiProvider');
 const helperAgent = require('./helperAgent');
+const taskManagementAgent = require('./taskManagementAgent');
 
 class RouterAgent {
     /**
@@ -171,31 +172,17 @@ Return ONLY valid JSON in this format:
         const reassignments = [];
         for (const taskDoc of tasksSnapshot.docs) {
             const taskData = taskDoc.data();
-            const bestAssignee = await helperAgent.findBestAssignee(
-                taskData.requiredSkills || [],
+            
+            // ✅ Delegate to Task Management Agent
+            const reassignResult = await taskManagementAgent.reassignTask(
+                taskDoc.id,
                 userId,
-                taskData.priority,
-                taskData.category || 'Professional'
+                `User on leave (${leaveDays} days)`,
+                taskData.priority
             );
-
-            if (bestAssignee) {
-                await db.collection('tasks').doc(taskDoc.id).update({
-                    assignedTo: bestAssignee.userId,
-                    previousAssignee: [...(taskData.previousAssignee || []), userId],
-                    moveCount: (taskData.moveCount || 0) + 1,
-                    reassignedAt: new Date().toISOString(),
-                    reassignmentReason: `User on leave (${leaveDays} days)`,
-                    updatedAt: new Date().toISOString()
-                });
-                await helperAgent.updateUserLoad(userId, -1);
-                await helperAgent.updateUserLoad(bestAssignee.userId, 1);
-
-                reassignments.push({
-                    taskId: taskDoc.id,
-                    from: userId,
-                    to: bestAssignee.userId,
-                    toName: bestAssignee.name
-                });
+            
+            if (reassignResult.success) {
+                reassignments.push(reassignResult);
             }
         }
 
@@ -318,46 +305,19 @@ Return ONLY valid JSON in this format:
         console.log('📋 Handling new task request...');
         const { taskTitle, taskDescription, requiredSkills, estimatedEffort, urgency } = categorization.extractedInfo;
 
-        const bestAssignee = await helperAgent.findBestAssignee(
-            requiredSkills || [],
-            null,
-            this.urgencyToPriority(urgency),
-            'Professional'
-        );
-
-        const taskRef = db.collection('tasks').doc();
-        const task = {
+        const result = await taskManagementAgent.createNewTask({
             title: taskTitle || 'Untitled Task',
             description: taskDescription || inputData.content.substring(0, 200),
-            projectId: 'proj_general',
-            assignedTo: bestAssignee?.userId || null,
-            previousAssignee: [],
-            moveCount: 0,
-            priority: this.urgencyToPriority(urgency),
-            status: bestAssignee ? 'todo' : 'unassigned',
-            estimatedEffort: estimatedEffort || 5,
             requiredSkills: requiredSkills || [],
-            category: 'Professional',
-            sourceInputId: inputId,
-            createdAt: new Date().toISOString(),
-            completedAt: null,
-            updatedAt: new Date().toISOString()
-        };
-
-        await taskRef.set(task);
-
-        if (bestAssignee) {
-            await helperAgent.updateUserLoad(bestAssignee.userId, 1);
-        }
+            priority: this.urgencyToPriority(urgency),
+            estimatedEffort: estimatedEffort || 5,
+            projectId: 'proj_general',
+            sourceInputId: inputId
+        });
 
         return {
             status: 'task_created',
-            taskId: taskRef.id,
-            task: task,
-            assignedTo: bestAssignee,
-            message: bestAssignee 
-                ? `Task assigned to ${bestAssignee.name}` 
-                : 'Task created but no suitable assignee found'
+            ...result
         };
     }
 
