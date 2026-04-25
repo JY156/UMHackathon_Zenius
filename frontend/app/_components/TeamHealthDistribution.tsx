@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, User, Task, HistoryData } from "../_lib/api";
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, ReferenceLine } from "recharts";
 import { CheckCircle2, Clock, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -95,22 +95,26 @@ export function TeamHealthDistribution() {
     }
   };
 
+  // Define constants for your business logic
+  const CRITICAL_THRESHOLD = 0.9; // 90%
+  const WARNING_THRESHOLD = 0.7;  // 70%
+
+  const getStatusTheme = (load: number, capacity: number) => {
+    const ratio = load / capacity;
+    if (ratio >= CRITICAL_THRESHOLD) return { color: "bg-red-500", text: "Overwhelmed", chip: "bg-red-100 text-red-700 border-red-200" };
+    if (ratio >= WARNING_THRESHOLD) return { color: "bg-amber-500", text: "At Risk", chip: "bg-amber-100 text-amber-700 border-amber-200" };
+    return { color: "bg-emerald-500", text: "Balanced", chip: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+  };
+  // Standardized thresholds
+  const DANGER_RATIO = 0.9;  // 90%
+  const WARNING_RATIO = 0.7; // 70%
+
   const getProgressColor = (load: number, capacity: number) => {
     const ratio = load / capacity;
-    if (ratio > 0.9) return "bg-red-500";
-    if (ratio > 0.7) return "bg-amber-500";
+    if (ratio >= DANGER_RATIO) return "bg-red-500";
+    if (ratio >= WARNING_RATIO) return "bg-amber-500";
     return "bg-emerald-500";
   };
-
-  const getSentimentChip = (score: number) => {
-    if (score < 0.4) return <span className="bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">Overwhelmed</span>;
-    if (score > 0.7) return <span className="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">Balanced</span>;
-    return <span className="bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">At Risk</span>;
-  };
-
-  if (loading) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Loading Team Distribution...</div>;
-  }
 
   // Group tasks for the active board
   const notStartedTasks = tasks.filter(t => t.status.toLowerCase() === 'pending' || t.status.toLowerCase() === 'not started' || t.status.toLowerCase() === 'todo');
@@ -127,6 +131,9 @@ export function TeamHealthDistribution() {
             const loadRatio = Math.min((user.current_load / user.task_capacity) * 100, 100);
             const isSelected = selectedUserId === user.id;
             
+            // Use the standardized theme logic for consistent colors
+            const theme = getStatusTheme(user.current_load, user.task_capacity);
+            
             return (
               <div 
                 key={user.id}
@@ -138,7 +145,10 @@ export function TeamHealthDistribution() {
                     <p className="font-bold text-sm text-foreground flex items-center gap-2 mb-2">
                       {user.name}
                     </p>
-                    {getSentimentChip(user.sentiment_score)}
+                    {/* Chip now uses the unified theme color */}
+                    <span className={`${theme.chip} border px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider`}>
+                      {theme.text}
+                    </span>
                   </div>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-primary text-white' : 'bg-slate-200 text-slate-600'}`}>
                     {user.name.charAt(0)}
@@ -148,11 +158,14 @@ export function TeamHealthDistribution() {
                 <div className="mt-4">
                   <div className="flex justify-between text-xs mb-1 font-medium">
                     <span className="text-muted-foreground">Workload</span>
-                    <span className="text-foreground">{user.current_load} / {user.task_capacity}</span>
+                    {/* Changed from raw numbers to percentage */}
+                    <span className={`font-bold ${theme.textColor}`}>
+                      {Math.round(loadRatio)}%
+                    </span>
                   </div>
                   <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                     <div 
-                      className={`h-full rounded-full transition-all duration-500 ease-out ${getProgressColor(user.current_load, user.task_capacity)}`}
+                      className={`h-full rounded-full transition-all duration-500 ease-out ${theme.color}`}
                       style={{ width: `${loadRatio}%` }}
                     ></div>
                   </div>
@@ -258,39 +271,38 @@ export function TeamHealthDistribution() {
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
-                    {/* Solid smooth gradient for the line */}
+                    {/* Stroke Gradient: Changes the line color at specific heights */}
                     <linearGradient id="colorStroke" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#eab308" stopOpacity={1} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={1} />
+                      <stop offset="0%" stopColor="#ef4444" />   {/* 100% Load */}
+                      <stop offset="10%" stopColor="#ef4444" />  {/* 90% Load - Hard Stop Red */}
+                      <stop offset="10%" stopColor="#eab308" />  {/* Switch to Yellow */}
+                      <stop offset="30%" stopColor="#eab308" />  {/* 70% Load - Hard Stop Yellow */}
+                      <stop offset="30%" stopColor="#10b981" />  {/* Switch to Green */}
+                      <stop offset="100%" stopColor="#10b981" /> {/* 0% Load */}
                     </linearGradient>
 
-                    {/* Semi-transparent smooth gradient for the area underneath */}
+                    {/* Fill Gradient: Semi-transparent area colors */}
                     <linearGradient id="colorFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4} />
-                      <stop offset="50%" stopColor="#eab308" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.4} />
+                      <stop offset="10%" stopColor="#ef4444" stopOpacity={0.3} />
+                      <stop offset="30%" stopColor="#eab308" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0.1} />
                     </linearGradient>
                   </defs>
 
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                   <XAxis dataKey="timeLabel" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
                   <YAxis domain={[0, 100]} tickFormatter={(val) => `${val}%`} tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    labelStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#0f172a' }}
-                    formatter={(value: number) => [`${value}%`, 'Load']}
-                  />
+                  
+                  {/* The "Danger Line" visual at 90% */}
+                  <ReferenceLine y={90} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: 'Danger', fill: '#ef4444', fontSize: 10 }} />
 
                   <Area 
                     type="monotone" 
                     dataKey="loadPercentage" 
                     stroke="url(#colorStroke)" 
                     strokeWidth={3}
-                    fillOpacity={1} 
                     fill="url(#colorFill)"
                     dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#cbd5e1' }}
-                    activeDot={{ r: 6, fill: '#0f172a', stroke: '#fff' }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
