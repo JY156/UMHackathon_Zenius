@@ -8,11 +8,11 @@ const seedZenius = async () => {
 
     // 1. Mock Users
     const users = [
-        { uid: "user_nc", data: { name: "NC", role: "engineer", email: "nc@zenius.ai", skills: ["Firebase", "System Design"], task_capacity: 30, current_load: 28, status: "overwhelmed", sentiment_score: 0.3, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_xw", data: { name: "XWei", role: "engineer", email: "xw@zenius.ai", skills: ["LLM Prompting", "Logic"], task_capacity: 25, current_load: 12, status: "active", sentiment_score: 0.9, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_sy", data: { name: "SY", role: "engineer", email: "sy@zenius.ai", skills: ["Python", "APIs"], task_capacity: 25, current_load: 10, status: "active", sentiment_score: 0.8, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_jyuen", data: { name: "Jing Yuen", role: "manager", email: "jy@zenius.ai", skills: ["React", "UI/UX", "Management"], task_capacity: 20, current_load: 8, status: "active", sentiment_score: 0.85, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_jying", data: { name: "JYing", role: "engineer", email: "jying@zenius.ai", skills: ["Jira API", "Integration"], task_capacity: 20, current_load: 5, status: "active", sentiment_score: 0.95, timezone: "Asia/Kuala_Lumpur" } }
+        { uid: "user_nc", data: { name: "NC", email: "nc@zenius.ai", skills: ["Firebase", "System Design"], task_capacity: 30, current_load: 28, status: "overwhelmed", sentiment_score: 0.3, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_xw", data: { name: "XWei", email: "xw@zenius.ai", skills: ["LLM Prompting", "Logic"], task_capacity: 25, current_load: 12, status: "active", sentiment_score: 0.9, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_sy", data: { name: "SY", email: "sy@zenius.ai", skills: ["Python", "APIs"], task_capacity: 25, current_load: 10, status: "active", sentiment_score: 0.8, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_jyuen", data: { name: "Jing Yuen", email: "jy@zenius.ai", skills: ["React", "UI/UX", "Management"], task_capacity: 20, current_load: 8, status: "active", sentiment_score: 0.85, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_jying", data: { name: "JYing", email: "jying@zenius.ai", skills: ["Jira API", "Integration"], task_capacity: 20, current_load: 5, status: "active", sentiment_score: 0.95, timezone: "Asia/Kuala_Lumpur" } }
     ];
     users.forEach(u => batch.set(db.collection('users').doc(u.uid), u.data));
 
@@ -48,13 +48,13 @@ const seedZenius = async () => {
 
     // 5. Inputs (All Emails, Matching Your Schema)
     const inputs = [
-        { 
-            id: "in_001", 
-            data: { 
-                source: "Email", 
+        {
+            id: "in_001",
+            data: {
+                source: "Email",
                 subject: "Medical Leave - SY",
                 content: "Boss, I'm feeling quite unwell. Going to see a doctor.", 
-                processed: false, 
+                processed: false,
                 timestamp: new Date(),
                 metadata: { subject: "Medical Leave - SY", sender: "sy@zenius.ai", threadId: "thread_mc_01" },
                 hasAttachments: true,
