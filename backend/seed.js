@@ -1,4 +1,4 @@
-const { db } = require('./config/firebase-admin');
+const { admin, db } = require('./config/firebase-admin');
 
 const seedZenius = async () => {
     console.log("🌱 Starting Zenius deep seed process...");
@@ -8,11 +8,11 @@ const seedZenius = async () => {
 
     // 1. Mock Users
     const users = [
-        { uid: "user_nc", data: { name: "NC", email: "nc@zenius.ai", skills: ["Firebase", "System Design"], task_capacity: 30, current_load: 28, status: "overwhelmed", sentiment_score: 0.3, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_xw", data: { name: "XWei", email: "xw@zenius.ai", skills: ["LLM Prompting", "Logic"], task_capacity: 25, current_load: 12, status: "active", sentiment_score: 0.9, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_sy", data: { name: "SY", email: "sy@zenius.ai", skills: ["Python", "APIs"], task_capacity: 25, current_load: 10, status: "active", sentiment_score: 0.8, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_jyuen", data: { name: "Jing Yuen", email: "jy@zenius.ai", skills: ["React", "UI/UX", "Management"], task_capacity: 20, current_load: 8, status: "active", sentiment_score: 0.85, timezone: "Asia/Kuala_Lumpur" } },
-        { uid: "user_jying", data: { name: "JYing", email: "jying@zenius.ai", skills: ["Jira API", "Integration"], task_capacity: 20, current_load: 5, status: "active", sentiment_score: 0.95, timezone: "Asia/Kuala_Lumpur" } }
+        { uid: "user_nc", data: { name: "Nicol", email: "nicolhengsiyi@gmail.com", skills: ["Firebase", "System Design"], task_capacity: 30, current_load: 28, status: "overwhelmed", sentiment_score: 0.3, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_xw", data: { name: "Phuah", email: "24004603@siswa.um.edu.my", skills: ["LLM Prompting", "Logic"], task_capacity: 25, current_load: 12, status: "active", sentiment_score: 0.9, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_sy", data: { name: "Syn", email: "synyeetan0114@gmail.com", skills: ["Python", "APIs"], task_capacity: 25, current_load: 10, status: "active", sentiment_score: 0.8, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_jyuen", data: { name: "Chia", email: "24004611@siswa.um.edu.my", skills: ["React", "UI/UX", "Management"], task_capacity: 20, current_load: 8, status: "active", sentiment_score: 0.85, timezone: "Asia/Kuala_Lumpur" } },
+        { uid: "user_jying", data: { name: "Teo", email: "24004591@siswa.um.edu.my", skills: ["Jira API", "Integration"], task_capacity: 20, current_load: 5, status: "active", sentiment_score: 0.95, timezone: "Asia/Kuala_Lumpur" } }
     ];
     users.forEach(u => batch.set(db.collection('users').doc(u.uid), u.data));
 
@@ -48,54 +48,78 @@ const seedZenius = async () => {
     approvals.forEach(a => batch.set(db.collection('approvals').doc(a.id), a.data));
 
     // 5. Inputs
+    // backend/seed.js - Updated inputs section
     const inputs = [
         {
             id: "in_001",
             data: {
-                source: "Email",
-                subject: "Medical Leave - SY",
-                content: "Boss, I'm feeling quite unwell. Going to see a doctor.", 
-                processed: false,
-                timestamp: new Date(),
-                metadata: { subject: "Medical Leave - SY", sender: "sy@zenius.ai", threadId: "thread_mc_01" },
+                // ✅ Core fields at root level (no nested metadata)
+                source: "gmail",  // Changed from "Email"
+                subject: "Medical Leave Application - PE3853805",
+                content: "Dear Manager, I am feeling unwell today and went to see doctor this morning. I cannot complete my assigned tasks today. I have attached my medical certificate for your record. Please reassign my urgent items if necessary. Regards, Syn Yee.",
+                sender: "Syn Yee Tan <synyeetan0114@gmail.com>",  // ✅ Flattened from metadata
+                threadId: "19dc412df14d1dd2",  // ✅ Flattened from metadata
+                
+                // ✅ Timestamps
+                emailTimestamp: new Date("2026-04-25T17:57:32").toISOString(),  // ✅ ISO string
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),  // ✅ Firestore timestamp
+                processedAt: admin.firestore.FieldValue.serverTimestamp(),  // ✅ Firestore timestamp
+                
+                // ✅ Processing status
+                processed: true,  // Set to false if you want to test processing
+                category: "LEAVE_RESIGNATION",  // ✅ Added for processed inputs
+                
+                // ✅ Attachment fields at root level
                 hasAttachments: true,
-                fileUrl: "https://storage.googleapis.com/mock-bucket/mc_slip.pdf",
-                fileName: "mc_slip.pdf",
-                parsedFileContent: "MEDICAL CERTIFICATE\nName: SY\nDays: 2",
-                batchId: "batch_Medical_Leave_-_SY"
-            } 
+                fileName: "MC_PE3853805_Tan Syn Yee_20260425.docx",
+                fileUrl: "https://storage.googleapis.com/umhackathon-zenius.firebasestorage.app/inputs/1777136116087_MC_PE3853805_Tan Syn Yee_20260425.docx",
+                parsedFileContent: "CLINIC SEJAHTERA KUALA LUMPUR Patient Name: SY Date of Visit: April 25, 2026 Diagnosis: Acute Viral Infection Recommendation: 2 Days Medical Leave (April 25 - April 26) Status: Unfit for work."
+                // ✅ Removed: batchId (not in new format)
+            }
         },
-        { 
-            id: "in_002", 
-            data: { 
-                source: "Email", 
+        {
+            id: "in_002",
+            data: {
+                source: "gmail",
                 subject: "URGENT: Jira Integration Deadline",
-                content: "The client just bumped up the deadline for the Jira integration. Needs to be done by tomorrow EOD.", 
-                processed: false, 
-                timestamp: new Date(),
-                metadata: { subject: "URGENT: Jira Integration Deadline", sender: "client@company.com", threadId: "thread_client_02" },
+                content: "The client just bumped up the deadline for the Jira integration. Needs to be done by tomorrow EOD.",
+                sender: "Client PM <client@company.com>",
+                threadId: "thread_client_02",
+                
+                emailTimestamp: new Date().toISOString(),
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                
+                processed: true,
+                category: "URGENT_DEADLINE",
+                
                 hasAttachments: false,
-                fileUrl: null,
                 fileName: null,
-                parsedFileContent: null,
-                batchId: "batch_URGENT:_Jira_Integration_Deadline"
-            } 
+                fileUrl: null,
+                parsedFileContent: null
+            }
         },
-        { 
-            id: "in_003", 
-            data: { 
-                source: "Email", 
-                subject: "New Feature Request - Heatmap",
-                content: "Please review the attached brief for the new dashboard heatmap feature.", 
-                processed: false, 
-                timestamp: new Date(),
-                metadata: { subject: "New Feature Request - Heatmap", sender: "product@zenius.ai", threadId: "thread_prod_03" },
+        {
+            id: "in_003",
+            data: {
+                source: "gmail",
+                subject: "New Feature Request - Dashboard Heatmap",
+                content: "Please review the attached brief for the new dashboard heatmap feature. We need to visualize team burnout using color-coded components. This should integrate with our existing analytics platform.",
+                sender: "Product Team <product@zenius.ai>",
+                threadId: "thread_prod_03",
+                
+                emailTimestamp: new Date().toISOString(),
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                processedAt: admin.firestore.FieldValue.serverTimestamp(),
+                
+                processed: true,
+                category: "NEW_TASK_REQUEST",
+                
                 hasAttachments: true,
-                fileUrl: "https://storage.googleapis.com/mock-bucket/feature_brief.pdf",
                 fileName: "feature_brief.pdf",
-                parsedFileContent: "FEATURE BRIEF\nGoal: Visualize team burnout using color-coded components.",
-                batchId: "batch_New_Feature_Request_-_Heatmap"
-            } 
+                fileUrl: "https://storage.googleapis.com/umhackathon-zenius.firebasestorage.app/inputs/feature_brief.pdf",
+                parsedFileContent: "FEATURE BRIEF\nProject: Dashboard Heatmap\nGoal: Visualize team burnout using color-coded components\nRequirements:\n- React frontend integration\n- Real-time data updates\n- Role-based access control\n- Export to PNG/PDF"
+            }
         }
     ];
     inputs.forEach(i => batch.set(db.collection('inputs').doc(i.id), i.data));

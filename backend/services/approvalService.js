@@ -28,6 +28,7 @@ const approvalService = {
             status: 'pending',
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         };
+        console.log('Creating approval request:', newApproval);
         const docRef = await db.collection('approvals').add(newApproval);
         await logService.addLog("APPROVAL_REQUESTED", "Info", { tid, fromUid, toUid });
         return docRef.id;
