@@ -32,6 +32,26 @@ const userService = {
         }
     },
 
+    getUserByEmail: async (email) => {
+        try {
+            const usersSnapshot = await db.collection('users')
+                .where('email', '==', email)
+                .limit(1)
+                .get();
+            
+            if (usersSnapshot.empty) return null;
+            
+            const doc = usersSnapshot.docs[0];
+            const userData = doc.data();
+            const currentLoad = await loadService.calculateLoadForUser(doc.id, userData.sentiment_score);
+            
+            return { uid: doc.id, ...userData, current_load: currentLoad };
+        } catch (error) {
+            console.error("getUserByEmail failed", error);
+            return null;
+        }
+    },
+
     getTeamState: async () => {
         try {
             const usersSnapshot = await db.collection('users').get();
