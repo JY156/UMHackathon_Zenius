@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, type ComponentType } from "react";
 import { useRoleStore } from "../_store/role-store";
 import {
@@ -24,9 +24,9 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/task-adjustments", label: "Task Assignments", icon: GitBranchPlus },
-  { href: "/team", label: "Team", icon: Users },
-  { href: "/approvals", label: "Approvals", icon: ShieldAlert },
+  { href: "/task-adjustments", label: "Task Assignments", icon: GitBranchPlus, roles: ["manager"] },
+  { href: "/team", label: "Team", icon: Users, roles: ["manager"] },
+  { href: "/approvals", label: "Approvals", icon: ShieldAlert, roles: ["manager"] },
 ];
 
 const teamSubItems = ["Engineering", "Product & Design", "Operations"];
@@ -38,6 +38,7 @@ function isActive(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { role } = useRoleStore();
   const [mounted, setMounted] = useState(false);
   // Initialize from localStorage if available, otherwise default to false
@@ -77,7 +78,18 @@ export function Sidebar() {
           {!isCollapsed && (
             <div className="flex flex-col">
               <p className="text-sm font-bold tracking-tight">Zenius AI</p>
-              <p className="text-[10px] uppercase font-bold text-sidebar-foreground/50 tracking-widest">{role}</p>
+              <button 
+                onClick={() => {
+                  const newRole = role === "manager" ? "worker" : "manager";
+                  useRoleStore.getState().setRole(newRole);
+                  if (newRole === "worker") {
+                    router.push("/");
+                  }
+                }}
+                className="text-[10px] text-left uppercase font-bold text-sidebar-foreground/50 tracking-widest hover:text-sidebar-foreground transition-colors cursor-pointer"
+              >
+                {role}
+              </button>
             </div>
           )}
           <button
@@ -95,6 +107,7 @@ export function Sidebar() {
 
         <nav className="space-y-2">
           {navItems.map((item) => {
+            if (item.roles && !item.roles.includes(role)) return null;
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (

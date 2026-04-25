@@ -28,6 +28,7 @@ export interface InputMessage {
   hasAttachments: boolean;
   status: string;
   timestamp: string;
+  processed?: boolean;
 }
 
 export interface Approval {
@@ -38,6 +39,9 @@ export interface Approval {
   reasoning: string;
   status: string;
   createdAt: string;
+  timestamp?: string;
+  suggested_assignee?: string;
+  task_id?: string;
 }
 
 export interface Task {
@@ -77,6 +81,11 @@ export const api = {
   getInputs: async (): Promise<InputMessage[]> => {
     const res = await fetch(`${API_BASE_URL}/inputs`);
     if (!res.ok) throw new Error('Failed to fetch inputs');
+    return res.json();
+  },
+  getApprovals: async (): Promise<Approval[]> => {
+    const res = await fetch(`${API_BASE_URL}/approvals`);
+    if (!res.ok) throw new Error('Failed to fetch all approvals');
     return res.json();
   },
   getPendingApprovals: async (): Promise<Approval[]> => {
