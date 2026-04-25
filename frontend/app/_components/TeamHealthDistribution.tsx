@@ -200,14 +200,6 @@ export function TeamHealthDistribution() {
                   <div key={task.id} className="bg-white p-3 rounded-lg border border-border shadow-sm">
                     <p className="text-sm font-bold">{task.title}</p>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
-                    <div className="mt-3 flex justify-end">
-                      <button 
-                        onClick={() => handleMarkDone(task.id)}
-                        className="text-[10px] bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 font-bold px-2 py-1 rounded transition-colors"
-                      >
-                        Mark Done
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -223,14 +215,6 @@ export function TeamHealthDistribution() {
                   <div key={task.id} className="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
                     <p className="text-sm font-bold">{task.title}</p>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
-                    <div className="mt-3 flex justify-end">
-                      <button 
-                        onClick={() => handleMarkDone(task.id)}
-                        className="text-[10px] bg-blue-50 hover:bg-emerald-50 hover:text-emerald-600 text-blue-600 font-bold px-2 py-1 rounded transition-colors"
-                      >
-                        Mark Done
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>

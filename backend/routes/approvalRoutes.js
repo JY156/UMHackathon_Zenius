@@ -25,6 +25,10 @@ router.post('/request', async (req, res) => {
 router.patch('/:id', async (req, res) => {
     try {
         const { status, actorUid } = req.body;
+        if (!status || !actorUid) {
+            return res.status(400).json({ error: "Missing status or actorUid" });
+        }
+        
         const success = await dbService.updateApprovalStatus(req.params.id, status, actorUid);
         res.status(200).json({ success });
     } catch (error){

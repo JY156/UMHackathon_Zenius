@@ -47,7 +47,7 @@ const approvalService = {
 
                 transaction.update(approvalRef, { status: newStatus, updatedAt: new Date() });
 
-                if (newStatus === 'accepted by new owner') {
+                if (newStatus === 'approved') {
                     shouldReassign = true;
                 }
             });

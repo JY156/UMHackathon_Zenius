@@ -37,18 +37,20 @@ export default function ApprovalsPage() {
 
   const handleApprove = async (id: string) => {
     try {
-      await api.updateApproval(id, "approved");
-      toast.success("Task reassignment approved");
+      // Pass "user_jyuen" as the actorUid to align with backend requirements
+      await api.updateApproval(id, "approved", "user_jyuen"); 
+      toast.success("Task reassignment approved by June");
       fetchData();
     } catch {
       toast.error("Failed to approve reassignment");
     }
   };
 
+  // Update handleReject to include June's UID (actorUid)
   const handleReject = async (id: string) => {
     try {
-      await api.updateApproval(id, "rejected");
-      toast.success("Task reassignment rejected");
+      await api.updateApproval(id, "rejected", "user_jyuen");
+      toast.success("Task reassignment rejected by June");
       fetchData();
     } catch {
       toast.error("Failed to reject reassignment");

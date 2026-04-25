@@ -93,11 +93,11 @@ export const api = {
     if (!res.ok) throw new Error('Failed to fetch approvals');
     return res.json();
   },
-  updateApproval: async (id: string, status: 'approved' | 'rejected') => {
+  updateApproval: async (id: string, status: 'approved' | 'rejected', actorUid: string) => {
     const res = await fetch(`${API_BASE_URL}/approvals/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status, actorUid }) // Now matches backend destructuring
     });
     if (!res.ok) throw new Error('Failed to update approval');
     return res.json();
