@@ -26,15 +26,17 @@ class TaskManagementAgent {
             const taskRef = db.collection('tasks').doc();
             const task = {
                 title: taskData.title,
-                description: taskData.description || '',
-                projectId: taskData.projectId || 'proj_general',
-                assignedTo: bestAssignee ? bestAssignee.userId : null,
+                description: taskData.description,
+                projectId: taskData.projectId || 'proj-general', // ✅ Ensure this line exists
+                assignedTo: bestAssignee?.userId || null,
                 previousAssignee: [],
                 moveCount: 0,
                 priority: taskData.priority || 3,
-                status: 'todo',
+                status: bestAssignee ? 'todo' : 'unassigned',
                 estimatedEffort: taskData.estimatedEffort || 5,
                 requiredSkills: taskData.requiredSkills || [],
+                deadline: taskData.deadline || null,
+                category: 'Professional',
                 sourceInputId: taskData.sourceInputId || null,
                 createdAt: new Date().toISOString(),
                 completedAt: null,

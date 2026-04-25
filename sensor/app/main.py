@@ -58,22 +58,31 @@ async def check_gmail_periodically():
                     attachments=parsed.get("attachments", []) 
                 )
                 
-                # 4. Forward to Backend (FIXED VARIABLE NAME)
+                # 4. Forward to Backend
                 response = await forward_to_backend(event_data)
-                
-                if response and (response.get("id") or response.get("message")):
-                    print(f"[GMAIL] Ingested: {parsed['user_id']}")
+
+                # ✅ FIX: Check for correct response keys from forward_to_backend
+                if response and response.get("status") in ["success", "ingested_pending_ai", "queued"]:
+                    print(f"[GMAIL] Ingested: {parsed['user_id']} | Status: {response.get('status')}")
 
                     # Task 4: REASSIGNMENT CHECK
                     if response.get("action") == "REASSIGN":
-                        # Note: You need to define/import this helper function
-                        # await send_reassignment_email(...)
-                        print(f"Reassignment triggered for {response.get('task_name')}")
+                        print(f"⚠️ Reassignment triggered for task")
+                        # await send_reassignment_email(...)  # Uncomment when ready
 
-                    # Mark as read
-                    service.users().messages().batchModify(
-                        userId='me', body={'ids': [msg['id']], 'removeLabelIds': ['UNREAD']}
-                    ).execute()
+                    # ✅ Mark as read - NOW THIS RUNS!
+                    try:
+                        service.users().messages().batchModify(
+                            userId='me', 
+                            body={'ids': [msg['id']], 'removeLabelIds': ['UNREAD']}
+                        ).execute()
+                        print(f"✅ Marked message {msg['id']} as read")
+                    except Exception as e:
+                        print(f"⚠️ Failed to mark as read: {e}")
+                        # Don't fail the whole flow if this fails
+
+                elif response and response.get("status") == "error":
+                    print(f"❌ Backend error: {response.get('reason')}")
 
         except Exception as e:
             import traceback

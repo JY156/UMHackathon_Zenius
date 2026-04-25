@@ -4,8 +4,8 @@ require('dotenv').config();
 class AIProvider {
     constructor() {
         this.primary = process.env.AI_PRIMARY || 'zai';
-        this.fallback = process.env.AI_FALLBACK || 'gemini';
-        this.timeout = parseInt(process.env.AI_TIMEOUT_MS) || 30000;
+        this.fallback = process.env.AI_FALLBACK === 'none' ? null : (process.env.AI_FALLBACK || 'gemini');        
+        this.timeout = parseInt(process.env.AI_TIMEOUT_MS) || 60000;
         
         // ✅ Model selection based on your available quotas
         this.models = {
@@ -33,7 +33,7 @@ class AIProvider {
             try {
                 console.log(`🤖 Trying AI provider: ${provider}`);
                 
-                const result = await this._withRetry(() => 
+                const result = await this._withRetry(() =>
                     this._callProvider(provider, {
                         prompt,
                         systemPrompt,
@@ -92,8 +92,8 @@ class AIProvider {
             } catch (error) {
                 lastError = error;
                 // Don't retry on auth/model errors
-                if (error.message.includes('401') || 
-                    error.message.includes('404') || 
+                if (error.message.includes('401') ||
+                    error.message.includes('404') ||
                     error.message.includes('invalid_api_key')) {
                     throw error;
                 }
@@ -111,6 +111,10 @@ class AIProvider {
      * Z.AI (ILMU GLM) API Call
      */
     async _callZAI({ prompt, systemPrompt, responseFormat, temperature, signal }) {
+        
+        console.log(`🤖 [Z.AI] Sending prompt (${prompt.length} chars, ~${Math.round(prompt.length/4)} tokens)...`);
+        const startTime = Date.now();
+
         const apiKey = process.env.ZAI_API_KEY;
         if (!apiKey) throw new Error('ZAI_API_KEY not set in environment');
 
@@ -134,6 +138,9 @@ class AIProvider {
             }),
             signal
         });
+
+        const duration = Date.now() - startTime;
+        console.log(`🤖 [Z.AI] Response received in ${duration}ms`);
 
         const responseText = await response.text();
         if (!response.ok) throw new Error(`Z.AI API error ${response.status}: ${responseText}`);

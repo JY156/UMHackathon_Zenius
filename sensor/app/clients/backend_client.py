@@ -1,3 +1,5 @@
+from unicodedata import category
+
 import httpx
 import json
 import redis.asyncio as redis
@@ -125,7 +127,7 @@ async def forward_to_backend(event: IngestedEvent):
             inner_result = result_data.get("result", {})
 
             category = result_data.get("category", "unknown")
-            action = inner_result.get("status", "unknown")
+            action = inner_result.get("status") or inner_result.get("action") or "unknown"
 
             print(f"✅ [Step 2/2] AI Processed: category={category}, action={action}")
             
